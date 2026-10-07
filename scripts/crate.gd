@@ -1,8 +1,8 @@
 class_name Crate
 extends Node3D
-## Loot crate dropped by elite enemies. Parachutes down, then opens the slot machine.
+## Loot crate dropped by advanced enemies. Parachutes down, then opens the slot machine.
 
-var kind := "elite"
+var kind := "advanced"
 var _sway := 0.0
 var _landed := false
 

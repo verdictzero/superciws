@@ -65,6 +65,8 @@ func wrap_text(s: String, max_chars: int) -> Array:
 func _draw() -> void:
 	if main == null:
 		return
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2(S, S))
+	PixelFont.unit = S
 	match main.state:
 		main.State.TITLE: _draw_title()
 		main.State.SCORES: _draw_scores()
@@ -120,8 +122,8 @@ func _draw_playing() -> void:
 			var sp := cam.unproject_position(p) / S
 			var col := Palette.GREEN
 			if e.type == e.Type.MISSILE: col = Palette.RED
-			if e.elite == 1: col = Palette.YELLOW
-			if e.elite == 2: col = Palette.PURPLE
+			if e.advanced == 1: col = Palette.YELLOW
+			if e.advanced == 2: col = Palette.PURPLE
 			if e.is_boss: col = Palette.WHITE
 			var onscreen := sp.x >= 0 and sp.x < 256 and sp.y >= 0 and sp.y < 192
 			if not onscreen:
@@ -132,7 +134,7 @@ func _draw_playing() -> void:
 			var dist := p.distance_to(cam.global_position)
 			var s := clampf(e.radius * 180.0 / maxf(dist, 1.0), 3.0, 14.0)
 			_bracket(sp, s, c(col))
-			if e.is_boss or e.elite > 0:
+			if e.is_boss or e.advanced > 0:
 				bar(sp.x - 8, sp.y - s - 4, 16, 2, e.hp / e.max_hp, Palette.RED, Palette.DARK)
 	if radar >= 2:
 		var t = main.best_target()
@@ -263,9 +265,9 @@ func _scope(enemies: Array) -> void:
 			continue
 		var col := Palette.GREEN
 		if e.type == e.Type.MISSILE: col = Palette.RED
-		if e.elite > 0: col = Palette.YELLOW
+		if e.advanced > 0: col = Palette.YELLOW
 		if e.is_boss: col = Palette.WHITE
-		var sz := 2 if (e.elite > 0 or e.is_boss) else 1
+		var sz := 2 if (e.advanced > 0 or e.is_boss) else 1
 		draw_rect(Rect2(center + v - Vector2(sz / 2.0, sz / 2.0), Vector2(sz, sz)), c(col))
 
 # --- level up --------------------------------------------------------------
@@ -312,7 +314,7 @@ func _draw_slot() -> void:
 	elif done and count >= 3:
 		title = "TRIPLE!"
 		tcol = Palette.CYAN
-	ctxt(14, title, tcol, 2)
+	ctxt(20, title, tcol, 2)
 	panel(Rect2(40, 36, 176, 52), Palette.LIGHT, Palette.DARK)
 	var ids: Array = Items.all_ids()
 	for i in 3:

@@ -69,7 +69,7 @@ const PASSIVES := {
 	"scavenger": {"name": "SCAVENGER", "kind": "passive", "max": 5, "icon": "S", "color": Palette.GREEN,
 		"desc": ["KILLS GIVE 15% MORE XP"]},
 	"luck": {"name": "LUCKY CHARM", "kind": "passive", "max": 4, "icon": "7", "color": Palette.YELLOW,
-		"desc": ["MORE ELITES SPAWN, CRATES PAY OUT MORE"]},
+		"desc": ["MORE ADVANCED UNITS, BETTER CRATES"]},
 	"tracers": {"name": "TRACER ROUNDS", "kind": "passive", "max": 4, "icon": "T", "color": Palette.ORANGE,
 		"desc": ["ROUNDS FLY 20% FASTER: EASIER TO HIT"]},
 }

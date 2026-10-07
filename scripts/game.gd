@@ -179,8 +179,8 @@ func enemy_damage_mult() -> float:
 func spawn_interval() -> float:
 	return clampf(2.4 - run_time / 60.0 * 0.2 - (level - 1) * 0.04, 0.4, 2.4)
 
-## Chance a spawn is an elite: time, level and luck all raise it.
-func elite_chance() -> float:
+## Chance a spawn is an advanced: time, level and luck all raise it.
+func advanced_chance() -> float:
 	if run_time < 45.0:
 		return 0.0
 	return minf(0.3, 0.04 + 0.02 * luck + run_time / 1500.0 + (level - 1) * 0.004)

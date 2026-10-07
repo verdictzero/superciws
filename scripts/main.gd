@@ -123,6 +123,7 @@ func _build_scene() -> void:
 	view.screen_space_aa = Viewport.SCREEN_SPACE_AA_DISABLED
 	view.canvas_item_default_texture_filter = Viewport.DEFAULT_CANVAS_ITEM_TEXTURE_FILTER_NEAREST
 	view.handle_input_locally = false
+	view.oversampling = false   # keep pixel fonts on their native grids
 	# Main is PROCESS_MODE_ALWAYS so menus keep running; the game world must not inherit that.
 	view.process_mode = Node.PROCESS_MODE_PAUSABLE
 	add_child(view)
@@ -141,12 +142,12 @@ func _build_scene() -> void:
 	view.add_child(laser)
 
 	var layer := CanvasLayer.new()
-	layer.scale = Vector2(HUD_SCALE, HUD_SCALE)   # HUD stays chunky 256x192 pixels
+	# HUD draws in 256x192 logical pixels at 2x (shapes scaled, fonts on their native grids)
 	view.add_child(layer)
 	hud = Hud.new()
 	hud.main = self
 	hud.process_mode = Node.PROCESS_MODE_ALWAYS
-	hud.size = Vector2(VIEW_W / HUD_SCALE, VIEW_H / HUD_SCALE)
+	hud.size = Vector2(VIEW_W, VIEW_H)
 	layer.add_child(hud)
 
 	screen = ColorRect.new()
@@ -604,10 +605,10 @@ func _spawn_director(delta: float) -> void:
 			if r <= 0.0:
 				type = k
 				break
-		var elite := 0
-		if randf() < Game.elite_chance():
-			elite = 2 if randf() < 0.25 else 1
-		spawn_enemy(type, elite)
+		var advanced := 0
+		if randf() < Game.advanced_chance():
+			advanced = 2 if randf() < 0.25 else 1
+		spawn_enemy(type, advanced)
 		# extra spawns per tick as the threat climbs
 		if Game.threat() > 1.8 and randf() < 0.35:
 			spawn_enemy(Enemy.Type.QUAD, 0)
@@ -622,9 +623,9 @@ func _spawn_director(delta: float) -> void:
 func difficulty() -> float:
 	return Game.threat()
 
-func spawn_enemy(type: int, elite: int, at: Vector3 = Vector3.INF) -> Enemy:
+func spawn_enemy(type: int, advanced: int, at: Vector3 = Vector3.INF) -> Enemy:
 	var e := Enemy.new()
-	e.setup(type, elite, difficulty())
+	e.setup(type, advanced, difficulty())
 	enemies.add_child(e)
 	if at != Vector3.INF:
 		e.global_position = at
@@ -640,8 +641,8 @@ func spawn_enemy(type: int, elite: int, at: Vector3 = Vector3.INF) -> Enemy:
 			Enemy.Type.MISSILE: r = randf_range(380, 450); alt = randf_range(60, 130)
 			Enemy.Type.UFO: r = 320.0; alt = 75.0
 		e.global_position = Vector3(sin(a) * r, alt, cos(a) * r)
-	if elite > 0:
-		show_message("ELITE CONTACT!", 1.5)
+	if advanced > 0:
+		show_message("ADVANCED CONTACT!", 1.5)
 	return e
 
 func spawn_from_boss(pos: Vector3) -> void:
@@ -693,7 +694,7 @@ func lead_point(e: Node3D) -> Vector3:
 # --- callbacks from entities ----------------------------------------------
 func on_enemy_killed(e: Node3D, by_player: bool) -> void:
 	var size := 1.0
-	if e.elite > 0: size = 1.8
+	if e.advanced > 0: size = 1.8
 	if e.is_boss: size = 3.2
 	Explosion.spawn(fx, e.global_position, size, [Palette.ORANGE, Palette.YELLOW, Palette.WHITE, Palette.RED], 8 + int(size * 4))
 	Sfx.play("explode_big" if e.is_boss else "explode", 0.0 if size > 1.0 else -4.0, randf_range(0.9, 1.2))
@@ -701,16 +702,16 @@ func on_enemy_killed(e: Node3D, by_player: bool) -> void:
 		return
 	Game.register_kill(e.points)
 	var chips := 1
-	if e.elite > 0: chips = 4
+	if e.advanced > 0: chips = 4
 	if e.is_boss: chips = 8
 	for i in chips:
 		var c := XpChip.new()
 		c.value = max(1, int(round(float(e.xp_value) / chips)))
 		fx.add_child(c)
 		c.global_position = e.global_position + Vector3(randf_range(-4, 4), randf_range(-2, 4), randf_range(-4, 4))
-	if e.elite > 0 or e.is_boss:
+	if e.advanced > 0 or e.is_boss:
 		var crate := Crate.new()
-		crate.kind = "ufo" if e.is_boss else ("purple" if e.elite == 2 else "elite")
+		crate.kind = "ufo" if e.is_boss else ("purple" if e.advanced == 2 else "advanced")
 		fx.add_child(crate)
 		crate.global_position = e.global_position
 		flash = 0.5

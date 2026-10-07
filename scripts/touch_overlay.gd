@@ -60,6 +60,7 @@ func _label(center: Vector2, text: String, col: Color) -> void:
 func _draw() -> void:
 	if not enabled or main == null:
 		return
+	PixelFont.unit = 1.0
 	var playing: bool = main.state == main.State.PLAYING
 	var dim := Color(1, 1, 1, 0.55)
 	# virtual stick

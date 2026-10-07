@@ -10,7 +10,7 @@ static var flash_mat: StandardMaterial3D
 static var pulse_mat: StandardMaterial3D
 
 var type: int = Type.QUAD
-var elite := 0          # 0 normal, 1 gold, 2 purple
+var advanced := 0          # 0 normal, 1 gold, 2 purple
 var hp := 3.0
 var max_hp := 3.0
 var speed := 20.0
@@ -44,10 +44,10 @@ static func _ensure_templates() -> void:
 	pulse_mat.emission = Palette.c(Palette.ORANGE)
 	pulse_mat.emission_energy_multiplier = 1.0
 
-func setup(t: int, elite_level: int, difficulty: float) -> void:
+func setup(t: int, advanced_level: int, difficulty: float) -> void:
 	_ensure_templates()
 	type = t
-	elite = elite_level
+	advanced = advanced_level
 	phase = randf() * TAU
 	lateral = Vector3(randf_range(-1, 1), 0, randf_range(-1, 1)).normalized()
 	var model_name := "quad_drone"
@@ -69,9 +69,9 @@ func setup(t: int, elite_level: int, difficulty: float) -> void:
 	hp *= difficulty
 	speed *= Game.enemy_speed_mult()
 	damage *= Game.enemy_damage_mult()
-	if elite == 1:
+	if advanced == 1:
 		hp *= 6.0; model_scale *= 1.5; radius *= 1.5; speed *= 0.85; points *= 5; xp_value *= 4
-	elif elite == 2:
+	elif advanced == 2:
 		hp *= 10.0; model_scale *= 1.6; radius *= 1.6; speed *= 0.8; points *= 8; xp_value *= 6
 	max_hp = hp
 	var inst: Node = _scenes[model_name].instantiate()
@@ -86,7 +86,7 @@ func setup(t: int, elite_level: int, difficulty: float) -> void:
 	add_to_group("enemies")
 
 func _restyle(root: Node) -> void:
-	var tint := Palette.c(Palette.YELLOW) if elite == 1 else (Palette.c(Palette.PURPLE) if elite == 2 else Color.WHITE)
+	var tint := Palette.c(Palette.YELLOW) if advanced == 1 else (Palette.c(Palette.PURPLE) if advanced == 2 else Color.WHITE)
 	var all: Array = [root] if root is MeshInstance3D else []
 	all.append_array(root.find_children("*", "MeshInstance3D", true, false))
 	for mi in all:
@@ -108,7 +108,7 @@ func _restyle(root: Node) -> void:
 					m.emission_enabled = true
 					m.emission = src.emission
 					m.emission_energy_multiplier = 1.5
-			if elite > 0:
+			if advanced > 0:
 				base = base.lerp(tint, 0.75)
 			m.albedo_color = base
 			m.roughness = 1.0

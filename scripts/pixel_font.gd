@@ -1,90 +1,60 @@
 class_name PixelFont
-## Tiny 3x5 bitmap font drawn with rectangles so text goes through the same
-## palette + LCD filter as everything else. Uppercase only.
+## Text for the HUD and overlays using two real pixel fonts (both SIL OFL, see assets/fonts):
+##   Press Start 2P  - headings, prompts, icons (8px grid, scale 2+)
+##   VT323           - body text and readouts (16px grid, scale 1)
+## Positions are "logical" pixels; `unit` says how many canvas pixels one logical pixel is
+## (the HUD draws at 2x so glyphs land on their native grids, overlays draw at 1x).
 
-const W := 3
-const H := 5
-const ADV := 4
+const BODY_PATH := "res://assets/fonts/VT323-Regular.ttf"
+const HEAD_PATH := "res://assets/fonts/PressStart2P-Regular.ttf"
+const BODY_PX := 16
+const HEAD_PX := 8
+const H := 6      # approximate logical cap height of body text (layout helper)
+const ADV := 4    # approximate logical advance of body text (layout helper)
 
-const GLYPHS := {
-	"A": ["010","101","111","101","101"],
-	"B": ["110","101","110","101","110"],
-	"C": ["011","100","100","100","011"],
-	"D": ["110","101","101","101","110"],
-	"E": ["111","100","110","100","111"],
-	"F": ["111","100","110","100","100"],
-	"G": ["011","100","101","101","011"],
-	"H": ["101","101","111","101","101"],
-	"I": ["111","010","010","010","111"],
-	"J": ["001","001","001","101","010"],
-	"K": ["101","101","110","101","101"],
-	"L": ["100","100","100","100","111"],
-	"M": ["101","111","111","101","101"],
-	"N": ["110","101","101","101","101"],
-	"O": ["010","101","101","101","010"],
-	"P": ["110","101","110","100","100"],
-	"Q": ["010","101","101","111","011"],
-	"R": ["110","101","110","101","101"],
-	"S": ["011","100","010","001","110"],
-	"T": ["111","010","010","010","010"],
-	"U": ["101","101","101","101","111"],
-	"V": ["101","101","101","101","010"],
-	"W": ["101","101","111","111","101"],
-	"X": ["101","101","010","101","101"],
-	"Y": ["101","101","010","010","010"],
-	"Z": ["111","001","010","100","111"],
-	"0": ["111","101","101","101","111"],
-	"1": ["010","110","010","010","111"],
-	"2": ["111","001","111","100","111"],
-	"3": ["111","001","011","001","111"],
-	"4": ["101","101","111","001","001"],
-	"5": ["111","100","111","001","111"],
-	"6": ["011","100","111","101","111"],
-	"7": ["111","001","010","010","010"],
-	"8": ["111","101","111","101","111"],
-	"9": ["111","101","111","001","110"],
-	" ": ["000","000","000","000","000"],
-	".": ["000","000","000","000","010"],
-	",": ["000","000","000","010","100"],
-	":": ["000","010","000","010","000"],
-	"-": ["000","000","111","000","000"],
-	"+": ["000","010","111","010","000"],
-	"%": ["101","001","010","100","101"],
-	"/": ["001","001","010","100","100"],
-	"!": ["010","010","010","000","010"],
-	"?": ["110","001","010","000","010"],
-	"(": ["010","100","100","100","010"],
-	")": ["010","001","001","001","010"],
-	">": ["100","010","001","010","100"],
-	"<": ["001","010","100","010","001"],
-	"=": ["000","111","000","111","000"],
-	"[": ["110","100","100","100","110"],
-	"]": ["011","001","001","001","011"],
-	"'": ["010","010","000","000","000"],
-	"*": ["101","010","111","010","101"],
-	"#": ["111","111","111","111","111"],
-	"_": ["000","000","000","000","111"],
-}
+static var unit := 2.0
+static var _body: FontFile
+static var _head: FontFile
+
+static func _ensure() -> void:
+	if _body != null:
+		return
+	_body = _prep(load(BODY_PATH))
+	_head = _prep(load(HEAD_PATH))
+
+static func _prep(f: FontFile) -> FontFile:
+	f.antialiasing = TextServer.FONT_ANTIALIASING_NONE
+	f.hinting = TextServer.HINTING_NONE
+	f.subpixel_positioning = TextServer.SUBPIXEL_POSITIONING_DISABLED
+	f.generate_mipmaps = false
+	return f
+
+static func _font(scale: int) -> FontFile:
+	return _body if scale <= 1 else _head
+
+static func _px(scale: int) -> int:
+	return BODY_PX if scale <= 1 else HEAD_PX * scale
 
 static func width(text: String, scale: int = 1) -> int:
-	return text.length() * ADV * scale - scale
+	_ensure()
+	return int(ceil(_font(scale).get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, _px(scale)).x / unit))
+
+## Baseline offset (canvas px) so the cap height sits just below `pos.y`.
+static func _baseline(scale: int) -> float:
+	if scale <= 1:
+		return 12.0           # VT323 @16: caps are ~10px tall
+	return float(HEAD_PX * scale) - float(scale) * 0.5   # Press Start 2P fills the em
 
 static func draw(ci: CanvasItem, pos: Vector2, text: String, color: Color, scale: int = 1, shadow: bool = false) -> void:
-	var t := text.to_upper()
+	_ensure()
+	var f := _font(scale)
+	var px := _px(scale)
+	var p := (pos * unit).floor() + Vector2(0, _baseline(scale))
+	ci.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	if shadow:
-		_draw_raw(ci, pos + Vector2(scale, scale), t, Palette.c(Palette.BLACK), scale)
-	_draw_raw(ci, pos, t, color, scale)
-
-static func _draw_raw(ci: CanvasItem, pos: Vector2, t: String, color: Color, scale: int) -> void:
-	var x := pos.x
-	for ch in t:
-		var g: Array = GLYPHS.get(ch, GLYPHS["?"])
-		for row in H:
-			var bits: String = g[row]
-			for col in W:
-				if bits[col] == "1":
-					ci.draw_rect(Rect2(x + col * scale, pos.y + row * scale, scale, scale), color)
-		x += ADV * scale
+		ci.draw_string(f, p + Vector2(unit, unit), text, HORIZONTAL_ALIGNMENT_LEFT, -1, px, Palette.c(Palette.BLACK))
+	ci.draw_string(f, p, text, HORIZONTAL_ALIGNMENT_LEFT, -1, px, color)
+	ci.draw_set_transform(Vector2.ZERO, 0.0, Vector2(unit, unit))
 
 static func draw_centered(ci: CanvasItem, center_x: float, y: float, text: String, color: Color, scale: int = 1, shadow: bool = false) -> void:
 	draw(ci, Vector2(floor(center_x - width(text, scale) / 2.0), y), text, color, scale, shadow)

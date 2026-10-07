@@ -2,7 +2,7 @@
 
 Retro arcade roguelike. You are a stationary CIWS battery in the desert. The gun never
 stops firing; you aim with the stick, intercept drones and missiles, level up Vampire
-Survivors style, and loot elite kills through a slot machine.
+Survivors style, and loot kills of advanced units through a slot machine.
 
 Built with **Godot 4.5** (GL Compatibility renderer). Renders 3D at 512x384 (4:3) with a chunky 256x192 HUD, then a post shader quantises
 everything to a 128-colour SNES-style palette and applies an LCD sub-pixel mask in screen
@@ -31,10 +31,10 @@ the directed energy beam once you own it. Missiles auto-launch when ready.
   The DEW Laser mounts on top of the missile pod, so it is only offered once you own Quad Missiles.
 - Passives: Armor, Nanites, Hydraulics, Coolant, Optics, Scavenger, Lucky Charm, Tracers.
 - Max-level weapon + the right passive = evolution, granted by the next loot crate.
-- Gold / purple elites and UFO bosses drop a parachuted crate that spins a 3-reel slot
+- Gold / purple advanced units and UFO bosses drop a parachuted crate that spins a 3-reel slot
   machine: 1 reward, triple (3) or jackpot (5).
 - Difficulty ramps with run time and level: enemy HP (shown as THREAT in the HUD), speed,
-  contact damage, spawn rate and elite odds all climb.
+  contact damage, spawn rate and advanced-unit odds all climb.
 - Level-up and loot screens freeze the world.
 - 3 lives per credit, continue countdown, combo multiplier scoring, persistent top-10
   high score table with initials entry, attract mode.
@@ -77,3 +77,5 @@ Debug launch flags (after `--`): `--autostart`, `--fast-forward=120`, `--autoaim
 ## Credits
 
 Explosion sprites from `verdictzero/galvarius`. Models and branding by verdictzero.
+Fonts: Press Start 2P (CodeMan38) and VT323 (Peter Hull), both under the SIL Open Font
+License, see `assets/fonts/`.
