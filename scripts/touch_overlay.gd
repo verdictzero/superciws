@@ -87,7 +87,7 @@ func _draw() -> void:
 		draw_circle(btn2_center, btn2_radius, Color(b2col.r, b2col.g, b2col.b, 0.2))
 		_ring(btn2_center, btn2_radius, b2col * dim, 2.0)
 		_label(btn2_center, "MSL", Palette.c(Palette.WHITE) if ready else Palette.c(Palette.LIGHT))
-	if not playing:
+	if not playing and main.state != main.State.TITLE:
 		var hint := "TAP: SELECT   SWIPE: MOVE"
 		var y: float = game_rect.end.y - ui * 0.6 if not portrait else game_rect.end.y + ui * 0.4
 		_label(Vector2(game_rect.get_center().x, y), hint, Palette.c(Palette.OFFWHITE) * dim)

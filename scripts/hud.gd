@@ -82,10 +82,7 @@ func _draw_title() -> void:
 	draw_texture(logo, Vector2(floor((256 - logo.get_width()) / 2.0), 8))
 	rtxt(252, 3, "HI %07d" % Game.top_score(), Palette.YELLOW)
 	if blink():
-		ctxt(134, "PRESS BUTTON TO START", Palette.WHITE, 1)
-	ctxt(152, "STICK AIMS  -  GUN FIRES AUTO", Palette.LIGHT_SAND)
-	ctxt(160, "HOLD BUTTON FOR BEAM WEAPON", Palette.LIGHT_SAND)
-	ctxt(176, "SURVIVE. LEVEL UP. LOOT ELITES.", Palette.OFFWHITE)
+		ctxt(150, "PRESS BUTTON TO START", Palette.WHITE, 1)
 	ctxt(184, "(C) 2026 VERDICTZERO", Palette.SLATE, 1, false)
 
 func _draw_scores() -> void:
