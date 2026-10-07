@@ -81,8 +81,8 @@ func _draw_title() -> void:
 	draw_texture(title_bg, Vector2.ZERO)
 	draw_texture(logo, Vector2(floor((256 - logo.get_width()) / 2.0), 8))
 	rtxt(252, 3, "HI %07d" % Game.top_score(), Palette.YELLOW)
-	if blink():
-		ctxt(150, "PRESS BUTTON TO START", Palette.WHITE, 1)
+	if blink(1.0):
+		ctxt(146, "- INSERT COIN -", Palette.YELLOW, 2)
 	ctxt(184, "(C) 2026 VERDICTZERO", Palette.SLATE, 1, false)
 
 func _draw_scores() -> void:
@@ -100,8 +100,8 @@ func _draw_scores() -> void:
 		elif i == 0:
 			col = Palette.CYAN
 		txt(40, y, "%2d.  %-3s  %07d  %2d" % [i + 1, e["name"], int(e["score"]), int(e["level"])], col)
-	if blink():
-		ctxt(168, "PRESS BUTTON TO START", Palette.WHITE)
+	if blink(1.0):
+		ctxt(168, "- INSERT COIN -", Palette.YELLOW)
 
 # --- gameplay --------------------------------------------------------------
 func _draw_playing() -> void:
