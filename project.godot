@@ -41,3 +41,4 @@ anti_aliasing/quality/msaa_3d=0
 anti_aliasing/quality/screen_space_aa=0
 textures/default_filters/anisotropic_filtering_level=0
 environment/defaults/default_clear_color=Color(0.0627, 0.0627, 0.3765, 1)
+textures/vram_compression/import_etc2_astc=true

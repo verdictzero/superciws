@@ -29,7 +29,9 @@ jobs:
             -d ~/.local/share/godot/export_templates/${GODOT_VERSION}.${GODOT_RELEASE}
 
       - name: Import project
-        run: ./godot --headless --path . --import
+        run: |
+          mkdir -p build && touch build/.gdignore
+          ./godot --headless --path . --import
 
       - name: Export Linux
         run: |
