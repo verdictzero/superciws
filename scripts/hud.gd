@@ -178,9 +178,11 @@ func _draw_playing() -> void:
 	rtxt(252, 3, "%07d" % Game.score, Palette.WHITE)
 	rtxt(252, 10, "HI %07d" % Game.top_score(), Palette.YELLOW)
 	rtxt(252, 17, Game.fmt_time(Game.run_time), Palette.LIGHT)
+	var th: float = Game.threat()
+	rtxt(252, 24, "THREAT X%.1f" % th, Palette.GREEN if th < 1.8 else (Palette.YELLOW if th < 3.0 else Palette.RED))
 	if Game.multiplier > 1:
-		rtxt(252, 26, "X%d" % Game.multiplier, Palette.ORANGE, 2)
-		bar(232, 42, 20, 2, Game.combo_timer / 2.5, Palette.ORANGE)
+		rtxt(252, 33, "X%d" % Game.multiplier, Palette.ORANGE, 2)
+		bar(232, 49, 20, 2, Game.combo_timer / 2.5, Palette.ORANGE)
 
 	# weapon status (bottom centre)
 	var by := 183.0
@@ -249,6 +251,11 @@ func _scope(enemies: Array) -> void:
 	draw_rect(Rect2(center.x, center.y - r, 1, r), Color(0.13, 0.75, 0.25, 0.5))
 	draw_rect(Rect2(center - Vector2(1, 1), Vector2(2, 2)), c(Palette.OFFWHITE))
 	var yaw: float = deg_to_rad(main.turret.yaw)
+	var half: float = deg_to_rad(Game.attack_arc() * 0.5)
+	if half < PI:
+		for sgn in [-1.0, 1.0]:
+			var b: float = sgn * half - yaw
+			draw_line(center, center + Vector2(sin(b), -cos(b)) * r, c(Palette.YELLOW), 1.0)
 	var rng := 400.0 if Game.radar_level >= 3 else 300.0
 	for e in enemies:
 		if e.dead:
@@ -330,19 +337,20 @@ func _draw_slot() -> void:
 		PixelFont.draw_centered(self, x + 17, y + 8 + jitter, icon, c(col), 4, true)
 	if done:
 		var rewards: Array = s["rewards"]
+		var y := 96
 		for i in rewards.size():
 			var r: Dictionary = rewards[i]
-			var line := ""
-			var col := Palette.WHITE
 			if r.has("evolve"):
-				line = "EVOLVED > " + Items.EVOLUTIONS[r["id"]]["name"]
-				col = Palette.PINK
+				var ev: Dictionary = Items.EVOLUTIONS[r["id"]]
+				ctxt(y, "EVOLVED > " + ev["name"], Palette.PINK)
+				y += 8
+				ctxt(y, ev["desc"], Palette.LIGHT_PINK if Palette.COLORS.size() > 61 else Palette.PINK)
 			elif r["id"] == "repair":
-				line = "FULL REPAIR +1000"
-				col = Palette.GREEN
+				ctxt(y, "FULL REPAIR +1000", Palette.GREEN)
 			else:
-				line = "%s  LV %d" % [Items.get_def(r["id"])["name"], r["level"]]
-			ctxt(96 + i * 8, line, col)
+				var lvl: int = r["level"]
+				ctxt(y, "%s LV %d: %s" % [Items.get_def(r["id"])["name"], lvl, Items.desc_for(r["id"], lvl)], Palette.WHITE)
+			y += 8
 		if s["t"] > s["stops"][2] + 0.8 and blink():
 			ctxt(172, "PRESS BUTTON", Palette.OFFWHITE)
 	else:

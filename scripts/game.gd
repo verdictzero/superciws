@@ -74,6 +74,11 @@ func continue_run() -> void:
 	multiplier = 1
 	hp = max_hp
 
+## Enemies attack from a cone in front of the battery: 30 degrees at level 1,
+## 5 degrees wider per level, up to the full circle.
+func attack_arc() -> float:
+	return minf(360.0, 30.0 + 5.0 * (level - 1))
+
 func xp_needed() -> int:
 	return 10 + level * 6 + int(pow(level, 1.35))
 
@@ -150,9 +155,35 @@ func offer_choices(count: int = 3) -> Array:
 	return out
 
 func grant(id: String) -> void:
+	var old_max := max_hp
 	items[id] = item_level(id) + 1
 	recalc()
+	if max_hp > old_max:
+		hp = minf(max_hp, hp + (max_hp - old_max))
 	stats_changed.emit()
+
+# --- difficulty ramp --------------------------------------------------------
+## Enemy HP multiplier. Grows with run time and with player level.
+func threat() -> float:
+	return 1.0 + run_time / 120.0 * 0.45 + (level - 1) * 0.07
+
+## Enemy speed multiplier, up to +60% over ten minutes.
+func enemy_speed_mult() -> float:
+	return 1.0 + minf(0.6, run_time / 600.0)
+
+## Damage enemies deal when they reach the battery, up to +80%.
+func enemy_damage_mult() -> float:
+	return 1.0 + minf(0.8, run_time / 900.0)
+
+## Seconds between spawns: shorter over time and with level.
+func spawn_interval() -> float:
+	return clampf(2.4 - run_time / 60.0 * 0.2 - (level - 1) * 0.04, 0.4, 2.4)
+
+## Chance a spawn is an elite: time, level and luck all raise it.
+func elite_chance() -> float:
+	if run_time < 45.0:
+		return 0.0
+	return minf(0.3, 0.04 + 0.02 * luck + run_time / 1500.0 + (level - 1) * 0.004)
 
 func evolution_available() -> String:
 	for wid in Items.EVOLUTIONS.keys():

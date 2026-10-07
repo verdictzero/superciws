@@ -1,6 +1,7 @@
 class_name Palette
 ## The whole game is quantised to this list by the post shader.
-## 64 colours, SNES / SuperFX flavoured. Swap entries here to restyle the game.
+## 128 colours, SNES / SuperFX flavoured. The first 64 are hand picked; the
+## rest are hue/shade ramps, greys and earth tones for smoother gradients. Swap entries here to restyle the game.
 
 const COLORS: PackedColorArray = [
 	Color("#000000"), # 0 black
@@ -67,6 +68,70 @@ const COLORS: PackedColorArray = [
 	Color("#f8c8e0"), # 61 light pink
 	Color("#b06040"), # 62 terracotta
 	Color("#e8a080"), # 63 peach
+	Color("#721111"), # 64 dark red
+	Color("#b72d2d"), # 65 mid red
+	Color("#ea6969"), # 66 light red
+	Color("#ffbfbf"), # 67 pastel red
+	Color("#724111"), # 68 dark orange
+	Color("#b7722d"), # 69 mid orange
+	Color("#eaaa69"), # 70 light orange
+	Color("#ffdfbf"), # 71 pastel orange
+	Color("#727211"), # 72 dark amber
+	Color("#b7b72d"), # 73 mid amber
+	Color("#eaea69"), # 74 light amber
+	Color("#ffffbf"), # 75 pastel amber
+	Color("#417211"), # 76 dark yellow
+	Color("#72b72d"), # 77 mid yellow
+	Color("#aaea69"), # 78 light yellow
+	Color("#dfffbf"), # 79 pastel yellow
+	Color("#117211"), # 80 dark lime
+	Color("#2db72d"), # 81 mid lime
+	Color("#69ea69"), # 82 light lime
+	Color("#bfffbf"), # 83 pastel lime
+	Color("#117241"), # 84 dark green
+	Color("#2db772"), # 85 mid green
+	Color("#69eaaa"), # 86 light green
+	Color("#bfffdf"), # 87 pastel green
+	Color("#117272"), # 88 dark mint
+	Color("#2db7b7"), # 89 mid mint
+	Color("#69eaea"), # 90 light mint
+	Color("#bfffff"), # 91 pastel mint
+	Color("#114172"), # 92 dark cyan
+	Color("#2d72b7"), # 93 mid cyan
+	Color("#69aaea"), # 94 light cyan
+	Color("#bfdfff"), # 95 pastel cyan
+	Color("#111172"), # 96 dark azure
+	Color("#2d2db7"), # 97 mid azure
+	Color("#6969ea"), # 98 light azure
+	Color("#bfbfff"), # 99 pastel azure
+	Color("#411172"), # 100 dark blue
+	Color("#722db7"), # 101 mid blue
+	Color("#aa69ea"), # 102 light blue
+	Color("#dfbfff"), # 103 pastel blue
+	Color("#721172"), # 104 dark violet
+	Color("#b72db7"), # 105 mid violet
+	Color("#ea69ea"), # 106 light violet
+	Color("#ffbfff"), # 107 pastel violet
+	Color("#721141"), # 108 dark magenta
+	Color("#b72d72"), # 109 mid magenta
+	Color("#ea69aa"), # 110 light magenta
+	Color("#ffbfdf"), # 111 pastel magenta
+	Color("#101010"), # 112 grey 10
+	Color("#242424"), # 113 grey 24
+	Color("#383838"), # 114 grey 38
+	Color("#4c4c4c"), # 115 grey 4c
+	Color("#606060"), # 116 grey 60
+	Color("#747474"), # 117 grey 74
+	Color("#909090"), # 118 grey 90
+	Color("#acacac"), # 119 grey ac
+	Color("#c8c8c8"), # 120 grey c8
+	Color("#dcdcdc"), # 121 grey dc
+	Color("#f0f0f0"), # 122 grey f0
+	Color("#f8f8f8"), # 123 grey f8
+	Color("#6a4a30"), # 124 umber
+	Color("#8c6a48"), # 125 khaki
+	Color("#b89470"), # 126 camel
+	Color("#dcc09c"), # 127 dune
 ]
 
 # Named handles used by code so the HUD and world pick palette-safe colours.
@@ -102,6 +167,7 @@ const DARK_PURPLE = 28
 const BONE = 29
 const DARK_BROWN = 30
 const SALMON = 31
+const LIGHT_PINK = 61
 
 static func c(i: int) -> Color:
 	return COLORS[i]

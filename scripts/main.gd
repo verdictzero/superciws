@@ -139,7 +139,7 @@ func _build_scene() -> void:
 	screen_mat = ShaderMaterial.new()
 	screen_mat.shader = load("res://shaders/retro.gdshader")
 	var pal := PackedColorArray(Palette.COLORS)
-	while pal.size() < 64:
+	while pal.size() < 128:
 		pal.append(Color.BLACK)
 	screen_mat.set_shader_parameter("palette", pal)
 	screen_mat.set_shader_parameter("palette_size", Palette.COLORS.size())
@@ -449,7 +449,7 @@ func _spawn_director(delta: float) -> void:
 	spawn_timer -= delta
 	var alive := get_tree().get_nodes_in_group("enemies").size()
 	if spawn_timer <= 0.0 and alive < 36:
-		spawn_timer = clampf(2.4 - t / 60.0 * 0.22, 0.45, 2.4) * randf_range(0.7, 1.3)
+		spawn_timer = Game.spawn_interval() * randf_range(0.7, 1.3)
 		var weights := {Enemy.Type.QUAD: 5.0}
 		if t > 40.0: weights[Enemy.Type.FIXED] = 3.0
 		if t > 90.0: weights[Enemy.Type.MISSILE] = 1.5 + t / 240.0
@@ -463,11 +463,14 @@ func _spawn_director(delta: float) -> void:
 				type = k
 				break
 		var elite := 0
-		if t > 60.0 and randf() < 0.05 + 0.02 * Game.luck:
+		if randf() < Game.elite_chance():
 			elite = 2 if randf() < 0.25 else 1
 		spawn_enemy(type, elite)
-		if t > 150.0 and randf() < 0.3:
+		# extra spawns per tick as the threat climbs
+		if Game.threat() > 1.8 and randf() < 0.35:
 			spawn_enemy(Enemy.Type.QUAD, 0)
+		if Game.threat() > 3.0 and randf() < 0.35:
+			spawn_enemy(Enemy.Type.FIXED, 0)
 	if t >= next_boss_time:
 		next_boss_time += 300.0
 		spawn_enemy(Enemy.Type.UFO, 0)
@@ -475,7 +478,7 @@ func _spawn_director(delta: float) -> void:
 		Sfx.play("warning")
 
 func difficulty() -> float:
-	return 1.0 + Game.run_time / 150.0
+	return Game.threat()
 
 func spawn_enemy(type: int, elite: int, at: Vector3 = Vector3.INF) -> Enemy:
 	var e := Enemy.new()
@@ -484,7 +487,9 @@ func spawn_enemy(type: int, elite: int, at: Vector3 = Vector3.INF) -> Enemy:
 	if at != Vector3.INF:
 		e.global_position = at
 	else:
-		var a := randf() * TAU
+		# bearing inside the attack cone, measured from the battery's forward (+Z)
+		var half := deg_to_rad(Game.attack_arc() * 0.5)
+		var a := randf_range(-half, half)
 		var r := 300.0
 		var alt := 30.0
 		match type:
@@ -492,7 +497,7 @@ func spawn_enemy(type: int, elite: int, at: Vector3 = Vector3.INF) -> Enemy:
 			Enemy.Type.FIXED: r = randf_range(330, 390); alt = randf_range(25, 60)
 			Enemy.Type.MISSILE: r = randf_range(380, 450); alt = randf_range(60, 130)
 			Enemy.Type.UFO: r = 320.0; alt = 75.0
-		e.global_position = Vector3(cos(a) * r, alt, sin(a) * r)
+		e.global_position = Vector3(sin(a) * r, alt, cos(a) * r)
 	if elite > 0:
 		show_message("ELITE CONTACT!", 1.5)
 	return e

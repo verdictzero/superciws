@@ -67,6 +67,8 @@ func setup(t: int, elite_level: int, difficulty: float) -> void:
 			hp = 140.0; speed = 28.0; radius = 15.0; points = 3000; xp_value = 40; damage = 0.0
 			is_boss = true
 	hp *= difficulty
+	speed *= Game.enemy_speed_mult()
+	damage *= Game.enemy_damage_mult()
 	if elite == 1:
 		hp *= 6.0; model_scale *= 1.5; radius *= 1.5; speed *= 0.85; points *= 5; xp_value *= 4
 	elif elite == 2:
@@ -160,8 +162,11 @@ func _physics_process(delta: float) -> void:
 		Type.MISSILE:
 			vel = dir * speed
 		Type.UFO:
+			# sweep back and forth across the attack cone instead of a full orbit
 			orbit_angle += delta * speed / 150.0
-			var want := Vector3(cos(orbit_angle) * 150.0, 75.0 + sin(age * 0.7) * 8.0, sin(orbit_angle) * 150.0)
+			var half := deg_to_rad(Game.attack_arc() * 0.5)
+			var bearing := sin(orbit_angle) * half if half < PI else orbit_angle
+			var want := Vector3(sin(bearing) * 150.0, 75.0 + sin(age * 0.7) * 8.0, cos(bearing) * 150.0)
 			var d := want - global_position
 			vel = d.normalized() * min(speed * 1.6, d.length() / delta)
 			model.rotation.y += delta * 2.0

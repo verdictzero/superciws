@@ -6,7 +6,8 @@ extends Node3D
 const MODEL := "res://assets/models/player_ciws.glb"
 const PITCH_MIN := -8.0
 const PITCH_MAX := 82.0
-const CAMERA_TILT := 7.0   # degrees the camera looks below the gun line
+const CAMERA_TILT := 7.0
+const YAW_MARGIN := 25.0   # degrees of traverse allowed beyond the attack cone   # degrees the camera looks below the gun line
 
 var yaw_node: Node3D
 var pitch_node: Node3D
@@ -107,6 +108,12 @@ func track_toward(world_point: Vector3, strength: float, delta: float) -> void:
 
 func update(delta: float) -> void:
 	var rate := Game.traverse_speed * delta
+	# traverse is limited to the attack cone plus a margin, so the player
+	# can never aim away from where the enemies come from
+	var lim := Game.attack_arc() * 0.5 + YAW_MARGIN
+	if lim < 180.0:
+		target_yaw = clampf(wrapf(target_yaw, -180.0, 180.0), -lim, lim)
+		yaw = clampf(yaw, -lim, lim)
 	var dy := wrapf(target_yaw - yaw, -180.0, 180.0)
 	yaw += clampf(dy, -rate, rate)
 	yaw = wrapf(yaw, -180.0, 180.0)

@@ -5,7 +5,7 @@ stops firing; you aim with the stick, intercept drones and missiles, level up Va
 Survivors style, and loot elite kills through a slot machine.
 
 Built with **Godot 4.5** (GL Compatibility renderer). Renders 3D at 512x384 (4:3) with a chunky 256x192 HUD, then a post shader quantises
-everything to a 64-colour SNES-style palette and applies an LCD sub-pixel mask in screen
+everything to a 128-colour SNES-style palette and applies an LCD sub-pixel mask in screen
 pixels.
 
 ## Controls (arcade cabinet: stick + 1 button, optional 2nd button)
@@ -24,6 +24,8 @@ the directed energy beam once you own it. Missiles auto-launch when ready.
 
 ## Progression
 
+- Enemies attack from a cone in front of the battery: 30 degrees at level 1, 5 degrees
+  wider per level, up to the full circle. Traverse is limited to that cone plus a margin.
 - Kills drop XP chips that fly to the battery. Level up = pick 1 of 3 cards.
 - Weapons (map to addon meshes in `player_ciws.glb`): Vulcan, AESA Radar, Quad Missiles, DEW Laser.
   The DEW Laser mounts on top of the missile pod, so it is only offered once you own Quad Missiles.
@@ -31,6 +33,8 @@ the directed energy beam once you own it. Missiles auto-launch when ready.
 - Max-level weapon + the right passive = evolution, granted by the next loot crate.
 - Gold / purple elites and UFO bosses drop a parachuted crate that spins a 3-reel slot
   machine: 1 reward, triple (3) or jackpot (5).
+- Difficulty ramps with run time and level: enemy HP (shown as THREAT in the HUD), speed,
+  contact damage, spawn rate and elite odds all climb.
 - Level-up and loot screens freeze the world.
 - 3 lives per credit, continue countdown, combo multiplier scoring, persistent top-10
   high score table with initials entry, attract mode.
