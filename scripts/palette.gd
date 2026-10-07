@@ -168,6 +168,9 @@ const BONE = 29
 const DARK_BROWN = 30
 const SALMON = 31
 const LIGHT_PINK = 61
+const STEEL = 34
+const UMBER = 112
+const FOREST = 52
 
 static func c(i: int) -> Color:
 	return COLORS[i]

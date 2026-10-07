@@ -380,6 +380,7 @@ func _enter(s: int) -> void:
 			Sfx.play("lost_life")
 			Input.vibrate_handheld(400)
 			Explosion.spawn(fx, turret.gun_pos(), 4.0, [Palette.ORANGE, Palette.YELLOW, Palette.WHITE, Palette.RED], 18)
+			Debris.spawn(fx, turret.gun_pos(), 16, [Palette.SLATE, Palette.LIGHT, Palette.STEEL, Palette.DARK, Palette.RUST], 1.6, 1.4)
 			turret.set_destroyed(true)
 			Game.lives -= 1
 			for e in get_tree().get_nodes_in_group("enemies"):
@@ -697,6 +698,10 @@ func on_enemy_killed(e: Node3D, by_player: bool) -> void:
 	if e.advanced > 0: size = 1.8
 	if e.is_boss: size = 3.2
 	Explosion.spawn(fx, e.global_position, size, [Palette.ORANGE, Palette.YELLOW, Palette.WHITE, Palette.RED], 8 + int(size * 4))
+	var wreck_cols := [Palette.SLATE, Palette.DARK, Palette.STEEL, Palette.RUST]
+	if e.advanced == 1: wreck_cols.append(Palette.GOLD)
+	if e.advanced == 2: wreck_cols.append(Palette.PURPLE)
+	Debris.spawn(fx, e.global_position, 4 + int(size * 3), wreck_cols, 0.7 + size * 0.4)
 	Sfx.play("explode_big" if e.is_boss else "explode", 0.0 if size > 1.0 else -4.0, randf_range(0.9, 1.2))
 	if not by_player:
 		return

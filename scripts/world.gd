@@ -51,7 +51,7 @@ func _build_environment() -> void:
 	env.sky = sky
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = Palette.c(Palette.LIGHT_SAND)
-	env.ambient_light_energy = 0.75
+	env.ambient_light_energy = 0.55
 	env.fog_enabled = true
 	env.fog_mode = Environment.FOG_MODE_EXPONENTIAL
 	env.fog_light_color = Palette.c(Palette.LIGHT_SAND)
@@ -64,7 +64,7 @@ func _build_environment() -> void:
 
 	var light := DirectionalLight3D.new()
 	light.light_color = Palette.c(Palette.LIGHT_SAND)
-	light.light_energy = 1.15
+	light.light_energy = 0.95
 	light.shadow_enabled = false
 	light.look_at_from_position(Vector3.ZERO, sun_dir, Vector3.UP)
 	add_child(light)
@@ -76,7 +76,7 @@ func _build_ground() -> void:
 	pm.subdivide_width = 48
 	pm.subdivide_depth = 48
 	mi.mesh = pm
-	mi.material_override = flat_material(Palette.c(Palette.SAND))
+	mi.material_override = flat_material(Palette.c(Palette.TAN))
 	mi.position.y = -0.6
 	add_child(mi)
 	# a few darker dune streaks for scale
@@ -85,7 +85,7 @@ func _build_ground() -> void:
 		var bm := BoxMesh.new()
 		bm.size = Vector3(randf_range(40, 140), randf_range(2, 5), randf_range(8, 20))
 		d.mesh = bm
-		d.material_override = flat_material(Palette.c(Palette.OCHRE))
+		d.material_override = flat_material(Palette.c(Palette.DARK_BROWN))
 		var a := randf() * TAU
 		var r := randf_range(90, 380)
 		d.position = Vector3(cos(a) * r, -0.2, sin(a) * r)
@@ -123,24 +123,60 @@ func _build_mountains(radius: float, hmin: float, hmax: float, segments: int, li
 	add_child(mi)
 
 func _build_rocks() -> void:
-	var rock_mat := flat_material(Palette.c(Palette.BROWN))
-	var cactus_mat := flat_material(Palette.c(Palette.GREEN))
-	for i in 46:
+	var rock_mats := [flat_material(Palette.c(Palette.BROWN)), flat_material(Palette.c(Palette.DARK_BROWN)), flat_material(Palette.c(Palette.UMBER))]
+	for i in 40:
 		var mi := MeshInstance3D.new()
 		var bm := BoxMesh.new()
-		var cactus := randf() < 0.3
-		if cactus:
-			bm.size = Vector3(randf_range(1.5, 2.5), randf_range(8, 16), randf_range(1.5, 2.5))
-			mi.material_override = cactus_mat
-		else:
-			bm.size = Vector3(randf_range(4, 16), randf_range(3, 9), randf_range(4, 14))
-			mi.material_override = rock_mat
+		bm.size = Vector3(randf_range(4, 16), randf_range(3, 9), randf_range(4, 14))
+		mi.material_override = rock_mats[i % rock_mats.size()]
 		mi.mesh = bm
 		var a := randf() * TAU
 		var r := randf_range(40, 330)
 		mi.position = Vector3(cos(a) * r, bm.size.y * 0.4 - 0.6, sin(a) * r)
 		mi.rotation.y = randf() * TAU
 		add_child(mi)
+	for i in 110:
+		var a := randf() * TAU
+		var r := randf_range(30, 360)
+		_build_cactus(Vector3(cos(a) * r, -0.6, sin(a) * r), randf_range(0.7, 1.6))
+
+## Saguaro: a ribbed trunk with one to three arms that go out, then up.
+func _build_cactus(pos: Vector3, s: float) -> void:
+	var root := Node3D.new()
+	root.position = pos
+	root.rotation.y = randf() * TAU
+	add_child(root)
+	var dark := flat_material(Palette.c(Palette.DARK_GREEN))
+	var mid := flat_material(Palette.c(Palette.FOREST))
+	var light := flat_material(Palette.c(Palette.MID_GREEN))
+	var trunk_h := randf_range(9, 18) * s
+	var trunk_w := randf_range(1.6, 2.4) * s
+	_cactus_segment(root, Vector3(0, trunk_h * 0.5, 0), Vector3(trunk_w, trunk_h, trunk_w), mid)
+	# ribs: thin darker strips on the trunk faces
+	_cactus_segment(root, Vector3(trunk_w * 0.5, trunk_h * 0.5, 0), Vector3(0.3 * s, trunk_h * 0.95, trunk_w * 0.35), dark)
+	_cactus_segment(root, Vector3(-trunk_w * 0.5, trunk_h * 0.5, 0), Vector3(0.3 * s, trunk_h * 0.95, trunk_w * 0.35), dark)
+	_cactus_segment(root, Vector3(0, trunk_h + 0.3 * s, 0), Vector3(trunk_w * 0.7, 0.6 * s, trunk_w * 0.7), light)
+	var arms := randi_range(1, 3)
+	for i in arms:
+		var side := -1.0 if i % 2 == 0 else 1.0
+		var ay := trunk_h * randf_range(0.35, 0.7)
+		var out := randf_range(2.0, 3.6) * s
+		var up := randf_range(3.0, 8.0) * s
+		var w := trunk_w * 0.7
+		var z := randf_range(-0.6, 0.6) * s
+		_cactus_segment(root, Vector3(side * out * 0.5, ay, z), Vector3(out, w, w), mid)
+		_cactus_segment(root, Vector3(side * out, ay + up * 0.5, z), Vector3(w, up + w, w), mid)
+		_cactus_segment(root, Vector3(side * out, ay + up + 0.2 * s, z), Vector3(w * 0.7, 0.5 * s, w * 0.7), light)
+		_cactus_segment(root, Vector3(side * (out + w * 0.5), ay + up * 0.5, z), Vector3(0.25 * s, up * 0.9, w * 0.35), dark)
+
+func _cactus_segment(parent: Node3D, at: Vector3, size: Vector3, mat: Material) -> void:
+	var mi := MeshInstance3D.new()
+	var bm := BoxMesh.new()
+	bm.size = size
+	mi.mesh = bm
+	mi.material_override = mat
+	mi.position = at
+	parent.add_child(mi)
 
 func _build_sun() -> void:
 	var mi := MeshInstance3D.new()

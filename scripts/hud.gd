@@ -15,9 +15,98 @@ func _ready() -> void:
 	title_bg = load("res://assets/textures/title_bg.png")
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 
+# --- 2D particles for the upgrade and loot screens ----------------------------
+var particles: Array = []     # {pos, vel, grav, life, max, col, size, kind, phase}
+var _spark_acc := 0.0
+var _last_state := -1
+
 func _process(delta: float) -> void:
 	_time += delta
+	_update_particles(delta)
 	queue_redraw()
+
+func _add_particle(pos: Vector2, vel: Vector2, grav: float, life: float, col: int, size: Vector2, kind: String = "dot") -> void:
+	particles.append({"pos": pos, "vel": vel, "grav": grav, "life": life, "max": life, "col": col, "size": size, "kind": kind, "phase": randf() * TAU})
+
+func _confetti(n: int, from_top: bool = true) -> void:
+	var cols := [Palette.YELLOW, Palette.ORANGE, Palette.CYAN, Palette.PINK, Palette.GREEN, Palette.WHITE, Palette.LIGHT_BLUE, Palette.PURPLE]
+	for i in n:
+		var p := Vector2(randf() * 256.0, randf_range(-20.0, -2.0) if from_top else randf_range(60.0, 120.0))
+		var v := Vector2(randf_range(-12.0, 12.0), randf_range(18.0, 40.0) if from_top else randf_range(-70.0, -30.0))
+		var sz := Vector2(3, 1) if randf() < 0.5 else Vector2(2, 2)
+		_add_particle(p, v, 14.0, randf_range(3.0, 5.5), cols[randi() % cols.size()], sz, "confetti")
+
+func _card_spark() -> void:
+	var i: int = main.levelup_cursor
+	var r := Rect2(8 + i * 82, 42, 76, 112)
+	var t := randf() * 2.0 * (r.size.x + r.size.y)
+	var p: Vector2
+	var out: Vector2
+	if t < r.size.x: p = Vector2(r.position.x + t, r.position.y); out = Vector2(0, -1)
+	elif t < r.size.x + r.size.y: p = Vector2(r.end.x, r.position.y + t - r.size.x); out = Vector2(1, 0)
+	elif t < 2.0 * r.size.x + r.size.y: p = Vector2(r.end.x - (t - r.size.x - r.size.y), r.end.y); out = Vector2(0, 1)
+	else: p = Vector2(r.position.x, r.end.y - (t - 2.0 * r.size.x - r.size.y)); out = Vector2(-1, 0)
+	var cols := [Palette.YELLOW, Palette.WHITE, Palette.ORANGE, Palette.GOLD]
+	_add_particle(p, out * randf_range(6.0, 16.0) + Vector2(randf_range(-4, 4), randf_range(-6, 0)), -18.0, randf_range(0.4, 0.9), cols[randi() % cols.size()], Vector2.ONE * (1 if randf() < 0.6 else 2))
+
+func _title_star() -> void:
+	_add_particle(Vector2(randf_range(50.0, 206.0), randf_range(26.0, 34.0)), Vector2(randf_range(-3, 3), -randf_range(8.0, 16.0)), 0.0, randf_range(0.8, 1.6), Palette.WHITE if randf() < 0.5 else Palette.YELLOW, Vector2.ONE, "star")
+
+func _update_particles(delta: float) -> void:
+	var st: int = main.state if main != null else -1
+	if st != _last_state:
+		_last_state = st
+		if st == main.State.LEVELUP:
+			_confetti(70)
+	if st == main.State.LEVELUP:
+		_spark_acc += delta * 40.0
+		while _spark_acc >= 1.0:
+			_spark_acc -= 1.0
+			_card_spark()
+		if randf() < delta * 7.0:
+			_title_star()
+		if randf() < delta * 12.0:
+			_confetti(1)
+	elif st == main.State.SLOT and main.slot.get("done", false) and int(main.slot.get("count", 1)) >= 3:
+		if not main.slot.get("_burst", false):
+			main.slot["_burst"] = true
+			_confetti(90, false)
+			_confetti(40, true)
+		if randf() < delta * 25.0:
+			_confetti(1)
+	elif particles.is_empty():
+		return
+	for p in particles:
+		p["vel"].y += p["grav"] * delta
+		p["pos"] += p["vel"] * delta
+		if p["kind"] == "confetti":
+			p["pos"].x += sin(_time * 4.0 + p["phase"]) * 20.0 * delta
+		p["life"] -= delta
+	particles = particles.filter(func(p): return p["life"] > 0.0 and p["pos"].y < 200.0)
+	if st != main.State.LEVELUP and st != main.State.SLOT:
+		particles.clear()
+
+func _draw_particles() -> void:
+	for p in particles:
+		var k: float = p["life"] / p["max"]
+		var col: Color = c(p["col"])
+		var pos: Vector2 = p["pos"].floor()
+		match p["kind"]:
+			"star":
+				if fmod(_time * 10.0 + p["phase"], 2.0) < 1.0:
+					draw_rect(Rect2(pos - Vector2(1, 0), Vector2(3, 1)), col)
+					draw_rect(Rect2(pos - Vector2(0, 1), Vector2(1, 3)), col)
+				else:
+					draw_rect(Rect2(pos, Vector2(1, 1)), col)
+			"confetti":
+				if k < 0.3 and fmod(_time * 12.0 + p["phase"], 2.0) < 1.0:
+					continue
+				var sz: Vector2 = p["size"] if fmod(_time * 3.0 + p["phase"], 2.0) < 1.0 else Vector2(p["size"].y, p["size"].x)
+				draw_rect(Rect2(pos, sz), col)
+			_:
+				if k < 0.35 and fmod(_time * 16.0 + p["phase"], 2.0) < 1.0:
+					continue
+				draw_rect(Rect2(pos, p["size"]), col)
 
 func c(i: int) -> Color:
 	return Palette.c(i)
@@ -295,6 +384,7 @@ func _draw_levelup() -> void:
 			PixelFont.draw_centered(self, x + 38, y + 100, "WEAPON", c(Palette.ORANGE), 1, false)
 		else:
 			PixelFont.draw_centered(self, x + 38, y + 100, "PASSIVE", c(Palette.PALE_BLUE), 1, false)
+	_draw_particles()
 	ctxt(162, "STICK: CHOOSE    BUTTON: TAKE", Palette.OFFWHITE)
 	var ev := Game.evolution_available()
 	if ev != "":
@@ -354,6 +444,7 @@ func _draw_slot() -> void:
 			ctxt(172, "PRESS BUTTON", Palette.OFFWHITE)
 	else:
 		ctxt(100, "SPINNING...", Palette.LIGHT)
+	_draw_particles()
 
 # --- death / continue / game over ------------------------------------------
 func _draw_destroyed() -> void:

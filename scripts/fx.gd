@@ -79,6 +79,7 @@ const SPRITE_SETS := {
 	"medium": {"prefix": "res://assets/sprites/explosions/explosion_medium_A_%02d.png", "count": 10, "fps": 18.0, "px": 0.42},
 	"large": {"prefix": "res://assets/sprites/explosions/explosion_large_B_%02d.png", "count": 9, "fps": 16.0, "px": 0.6},
 	"column": {"prefix": "res://assets/sprites/explosions/bigger_explosion_%04d.png", "count": 30, "fps": 16.0, "px": 0.9},
+	"smoke": {"prefix": "res://assets/sprites/explosions/explosion_medium_B_%02d.png", "count": 8, "fps": 12.0, "px": 0.4},
 }
 static var _frames: Dictionary = {}
 
@@ -87,7 +88,7 @@ static func _load_frames(set_name: String) -> Array:
 		var d: Dictionary = SPRITE_SETS[set_name]
 		var arr: Array = []
 		for i in d["count"]:
-			arr.append(load(d["prefix"] % (i + 1)))
+			arr.append(load(d["prefix"] % (i if set_name == "column" else i + 1)))
 		_frames[set_name] = arr
 	return _frames[set_name]
 
