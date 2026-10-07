@@ -48,9 +48,12 @@ jobs:
           mkdir -p build/web
           ./godot --headless --path . --export-release "Web" build/web/index.html
 
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
       - name: Android SDK build-tools + debug keystore + editor settings
-        env:
-          JAVA_HOME: ${{ env.JAVA_HOME_17_X64 }}
         run: |
           set -e
           SDK="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
@@ -73,8 +76,6 @@ jobs:
           done
 
       - name: Export Android (debug-signed APK)
-        env:
-          JAVA_HOME: ${{ env.JAVA_HOME_17_X64 }}
         run: |
           mkdir -p build/android
           ./godot --headless --path . --export-debug "Android" build/android/superciws.apk
