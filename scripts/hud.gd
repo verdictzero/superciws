@@ -19,6 +19,8 @@ func _ready() -> void:
 var particles: Array = []     # {pos, vel, grav, life, max, col, size, kind, phase}
 var _spark_acc := 0.0
 var _last_state := -1
+var _lvl_t := 0.0          # seconds since the level-up screen opened
+var _last_cursor := -1
 
 func _process(delta: float) -> void:
 	_time += delta
@@ -49,6 +51,18 @@ func _card_spark() -> void:
 	var cols := [Palette.YELLOW, Palette.WHITE, Palette.ORANGE, Palette.GOLD]
 	_add_particle(p, out * randf_range(6.0, 16.0) + Vector2(randf_range(-4, 4), randf_range(-6, 0)), -18.0, randf_range(0.4, 0.9), cols[randi() % cols.size()], Vector2.ONE * (1 if randf() < 0.6 else 2))
 
+func _card_burst(i: int, n: int) -> void:
+	var r := Rect2(8 + i * 82, 42, 76, 112)
+	var cols := [Palette.YELLOW, Palette.WHITE, Palette.CYAN, Palette.ORANGE]
+	for k in n:
+		var a := randf() * TAU
+		_add_particle(r.get_center() + Vector2(randf_range(-30, 30), randf_range(-50, 50)), Vector2(cos(a), sin(a)) * randf_range(30.0, 80.0), 40.0, randf_range(0.4, 0.8), cols[randi() % cols.size()], Vector2.ONE * (1 if randf() < 0.5 else 2))
+
+## Called by main when a card is taken: big burst from that card.
+func take_burst(i: int) -> void:
+	_card_burst(i, 70)
+	_confetti(30, false)
+
 func _title_star() -> void:
 	_add_particle(Vector2(randf_range(50.0, 206.0), randf_range(26.0, 34.0)), Vector2(randf_range(-3, 3), -randf_range(8.0, 16.0)), 0.0, randf_range(0.8, 1.6), Palette.WHITE if randf() < 0.5 else Palette.YELLOW, Vector2.ONE, "star")
 
@@ -58,7 +72,13 @@ func _update_particles(delta: float) -> void:
 		_last_state = st
 		if st == main.State.LEVELUP:
 			_confetti(70)
+			_lvl_t = 0.0
+			_last_cursor = main.levelup_cursor
 	if st == main.State.LEVELUP:
+		_lvl_t += delta
+		if main.levelup_cursor != _last_cursor:
+			_last_cursor = main.levelup_cursor
+			_card_burst(main.levelup_cursor, 18)
 		_spark_acc += delta * 40.0
 		while _spark_acc >= 1.0:
 			_spark_acc -= 1.0
@@ -309,8 +329,6 @@ func _draw_playing() -> void:
 		ctxt(58, main.message, Palette.YELLOW, 2)
 	if main.threat and radar >= 3 and blink(0.3):
 		ctxt(30, "!! MISSILE !!", Palette.RED, 1)
-	if main.state == main.State.PLAYING and Game.run_time < 4.0 and blink(0.6):
-		ctxt(120, "DEFEND THE BATTERY", Palette.OFFWHITE)
 
 func _bracket(p: Vector2, s: float, col: Color) -> void:
 	var x := floorf(p.x)
@@ -360,23 +378,64 @@ func _scope(enemies: Array) -> void:
 		draw_rect(Rect2(center + v - Vector2(sz / 2.0, sz / 2.0), Vector2(sz, sz)), c(col))
 
 # --- level up --------------------------------------------------------------
+func _ease_out_back(t: float) -> float:
+	t = clampf(t, 0.0, 1.0)
+	var s := 1.7
+	t -= 1.0
+	return t * t * ((s + 1.0) * t + s) + 1.0
+
+func _sunburst(center: Vector2, rays: int, len: float, col: Color, speed: float) -> void:
+	for i in rays:
+		var a := _time * speed + i * TAU / rays
+		var w := 0.06 + 0.04 * sin(_time * 2.0 + i)
+		var p1 := center + Vector2(cos(a - w), sin(a - w)) * len
+		var p2 := center + Vector2(cos(a + w), sin(a + w)) * len
+		draw_colored_polygon(PackedVector2Array([center, p1, p2]), col)
+
 func _draw_levelup() -> void:
 	dim()
-	ctxt(20, "LEVEL UP!  LV %d" % Game.level, Palette.YELLOW, 2)
+	# rotating sunburst behind everything, like a slot-machine win
+	_sunburst(Vector2(128, 26), 14, 300.0, Color(1.0, 0.85, 0.2, 0.10), 0.25)
+	_sunburst(Vector2(128, 26), 10, 300.0, Color(1.0, 0.5, 0.1, 0.07), -0.17)
+	var bob := sin(_time * 5.0) * 2.0
+	ctxt(20 + int(bob), "LEVEL UP!  LV %d" % Game.level, Palette.YELLOW if blink(0.3) else Palette.LIGHT_YELLOW, 2)
 	var choices: Array = main.levelup_choices
 	for i in choices.size():
 		var id: String = choices[i]
 		var d := Items.get_def(id)
-		var x := 8 + i * 82
-		var y := 42
 		var sel: bool = i == main.levelup_cursor
-		panel(Rect2(x, y, 76, 112), Palette.YELLOW if sel else Palette.SLATE, Palette.NIGHT if not sel else Palette.DARK)
-		PixelFont.draw_centered(self, x + 38, y + 6, d["icon"], c(d["color"]), 4, true)
+		# cards bounce in from below, staggered
+		var k := _ease_out_back((_lvl_t - i * 0.12) / 0.45)
+		var x := 8 + i * 82
+		var y := int(42 + (1.0 - k) * 160.0)
+		if sel:
+			y -= 4
 		var lvl := Game.item_level(id)
+		var frame := Palette.SLATE
+		if d["kind"] == "weapon": frame = Palette.RUST
+		if sel:
+			frame = Palette.YELLOW if blink(0.25) else Palette.WHITE
+		panel(Rect2(x, y, 76, 112), frame, Palette.NIGHT if not sel else Palette.DARK)
+		if sel:
+			# second pulsing border and a shine sweep across the card
+			var pulse := 1 + int(fmod(_time * 6.0, 2.0))
+			draw_rect(Rect2(x - pulse, y - pulse, 76 + pulse * 2, 112 + pulse * 2), c(Palette.YELLOW), false, 1.0)
+			var sx := fmod(_time * 90.0, 190.0) - 60.0
+			for row in 112:
+				var px := x + int(sx + row * 0.5)
+				if px >= x + 1 and px + 4 <= x + 75:
+					draw_rect(Rect2(px, y + row, 4, 1), Color(1, 1, 1, 0.16))
+					draw_rect(Rect2(px + 1, y + row, 2, 1), Color(1, 1, 1, 0.22))
+		var icon_bob := int(sin(_time * 4.0 + i) * 1.5) if sel else 0
+		PixelFont.draw_centered(self, x + 38, y + 6 + icon_bob, d["icon"], c(d["color"]), 4, true)
 		for li in wrap_text(d["name"], 18).size():
 			PixelFont.draw_centered(self, x + 38, y + 32 + li * 7, wrap_text(d["name"], 18)[li], c(Palette.WHITE), 1, true)
-		var tag := "NEW!" if lvl == 0 else "LV %d > %d" % [lvl, lvl + 1]
-		PixelFont.draw_centered(self, x + 38, y + 48, tag, c(Palette.GREEN if lvl == 0 else Palette.CYAN), 1, true)
+		if lvl == 0:
+			var nc := Palette.GREEN if blink(0.3) else Palette.LEAF
+			PixelFont.draw_centered(self, x + 38, y + 47, "* NEW! *", c(nc), 1, true)
+		else:
+			var arrow := ">" if blink(0.4) else ">>"
+			PixelFont.draw_centered(self, x + 38, y + 48, "LV %d %s %d" % [lvl, arrow, lvl + 1], c(Palette.CYAN), 1, true)
 		var lines := wrap_text(Items.desc_for(id, lvl + 1), 18)
 		for li in lines.size():
 			PixelFont.draw_centered(self, x + 38, y + 62 + li * 7, lines[li], c(Palette.LIGHT_SAND), 1, true)
@@ -384,8 +443,9 @@ func _draw_levelup() -> void:
 			PixelFont.draw_centered(self, x + 38, y + 100, "WEAPON", c(Palette.ORANGE), 1, false)
 		else:
 			PixelFont.draw_centered(self, x + 38, y + 100, "PASSIVE", c(Palette.PALE_BLUE), 1, false)
+		if lvl + 1 >= int(d["max"]):
+			PixelFont.draw_centered(self, x + 38, y + 92, "MAX", c(Palette.PINK), 1, false)
 	_draw_particles()
-	ctxt(162, "STICK: CHOOSE    BUTTON: TAKE", Palette.OFFWHITE)
 	var ev := Game.evolution_available()
 	if ev != "":
 		ctxt(174, "EVOLUTION READY: FIND A CRATE", Palette.PINK if blink() else Palette.PURPLE)
@@ -440,8 +500,6 @@ func _draw_slot() -> void:
 				var lvl: int = r["level"]
 				ctxt(y, "%s LV %d: %s" % [Items.get_def(r["id"])["name"], lvl, Items.desc_for(r["id"], lvl)], Palette.WHITE)
 			y += 8
-		if s["t"] > s["stops"][2] + 0.8 and blink():
-			ctxt(172, "PRESS BUTTON", Palette.OFFWHITE)
 	else:
 		ctxt(100, "SPINNING...", Palette.LIGHT)
 	_draw_particles()
@@ -461,10 +519,7 @@ func _draw_continue() -> void:
 	ctxt(40, "CONTINUE?", Palette.YELLOW, 3)
 	var n := int(ceil(main.continue_timer))
 	ctxt(80, "%d" % n, Palette.WHITE if n > 3 else Palette.RED, 6)
-	if blink(0.5):
-		ctxt(140, "PRESS BUTTON", Palette.OFFWHITE, 1)
 	ctxt(156, "SCORE %07d   LV %d" % [Game.score, Game.level], Palette.LIGHT)
-	ctxt(166, "KEEP ALL UPGRADES, +3 UNITS", Palette.SLATE)
 
 func _draw_gameover() -> void:
 	draw_rect(Rect2(0, 0, 256, 192), c(Palette.BLACK))
@@ -490,5 +545,3 @@ func _draw_name_entry() -> void:
 			_diamond(Vector2(x + 6, 84), 2, c(Palette.CYAN))
 			_diamond(Vector2(x + 6, 116), 2, c(Palette.CYAN))
 		PixelFont.draw(self, Vector2(x, 90), ch, c(col), 4, true)
-	ctxt(134, "STICK UP/DOWN: LETTER", Palette.OFFWHITE)
-	ctxt(144, "BUTTON: NEXT", Palette.OFFWHITE)

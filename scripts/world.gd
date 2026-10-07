@@ -87,7 +87,7 @@ func _build_ground() -> void:
 		d.mesh = bm
 		d.material_override = flat_material(Palette.c(Palette.DARK_BROWN))
 		var a := randf() * TAU
-		var r := randf_range(90, 380)
+		var r := randf_range(150, 420)
 		d.position = Vector3(cos(a) * r, -0.2, sin(a) * r)
 		d.rotation.y = randf() * TAU
 		add_child(d)
@@ -131,13 +131,13 @@ func _build_rocks() -> void:
 		mi.material_override = rock_mats[i % rock_mats.size()]
 		mi.mesh = bm
 		var a := randf() * TAU
-		var r := randf_range(40, 330)
+		var r := randf_range(120, 380)
 		mi.position = Vector3(cos(a) * r, bm.size.y * 0.4 - 0.6, sin(a) * r)
 		mi.rotation.y = randf() * TAU
 		add_child(mi)
 	for i in 110:
 		var a := randf() * TAU
-		var r := randf_range(30, 360)
+		var r := randf_range(120, 400)
 		_build_cactus(Vector3(cos(a) * r, -0.6, sin(a) * r), randf_range(0.7, 1.6))
 
 ## Saguaro: a ribbed trunk with one to three arms that go out, then up.

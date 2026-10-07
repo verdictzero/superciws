@@ -416,7 +416,6 @@ func start_run() -> void:
 	pending_levelups = 0
 	rank = -1
 	invuln = 2.0
-	show_message("DEFEND THE BATTERY", 2.0)
 	Sfx.play("coin")
 	_enter(State.PLAYING)
 
@@ -777,6 +776,9 @@ func _update_levelup() -> void:
 		Game.grant(id)
 		turret.refresh_addons()
 		Sfx.play("confirm")
+		Sfx.play("jackpot", -8.0, 1.6)
+		hud.take_burst(levelup_cursor)
+		flash = 0.35
 		pending_levelups = max(0, pending_levelups - 1)
 		if pending_levelups > 0:
 			_enter(State.LEVELUP)

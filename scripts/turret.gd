@@ -6,7 +6,7 @@ extends Node3D
 const MODEL := "res://assets/models/player_ciws.glb"
 const PITCH_MIN := -8.0
 const PITCH_MAX := 82.0
-const CAMERA_TILT := 7.0
+const CAMERA_TILT := 17.0   # degrees the camera looks below the gun line
 const YAW_MARGIN := 25.0   # degrees of traverse allowed beyond the attack cone   # degrees the camera looks below the gun line
 
 var yaw_node: Node3D
@@ -46,10 +46,10 @@ func _ready() -> void:
 	refresh_addons()
 
 	camera = Camera3D.new()
-	camera.fov = 58.0
+	camera.fov = 64.0
 	camera.near = 0.5
 	camera.far = 2500.0
-	camera.position = Vector3(0, 13.5, -14.0)
+	camera.position = Vector3(0, 20.0, -25.0)
 	yaw_node.add_child(camera)
 	camera.current = true
 
@@ -75,7 +75,7 @@ func _restyle(root: Node) -> void:
 			var src := mesh.surface_get_material(i)
 			var m := StandardMaterial3D.new()
 			if src is BaseMaterial3D:
-				m.albedo_color = src.albedo_color
+				m.albedo_color = src.albedo_color * Color(0.55, 0.55, 0.6)   # darker gunmetal
 			m.roughness = 1.0
 			m.specular_mode = BaseMaterial3D.SPECULAR_DISABLED
 			m.shading_mode = BaseMaterial3D.SHADING_MODE_PER_VERTEX

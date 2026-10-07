@@ -171,6 +171,8 @@ const LIGHT_PINK = 61
 const STEEL = 34
 const UMBER = 112
 const FOREST = 52
+const LEAF = 53
+const LIGHT_YELLOW = 50
 
 static func c(i: int) -> Color:
 	return COLORS[i]
