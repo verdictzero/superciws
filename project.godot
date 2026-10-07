@@ -1,0 +1,37 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; but it is still usable from a text editor.
+
+config_version=5
+
+[application]
+
+config/name="SUPER CIWS"
+config/description="Retro roguelike arcade CIWS defense. SuperFX-style 3D with a limited palette and an LCD subpixel filter."
+run/main_scene="res://scenes/main.tscn"
+config/features=PackedStringArray("4.5", "GL Compatibility")
+config/icon="res://icon.svg"
+
+[autoload]
+
+Game="*res://scripts/game.gd"
+Sfx="*res://scripts/sfx.gd"
+
+[display]
+
+window/size/viewport_width=768
+window/size/viewport_height=576
+window/size/resizable=true
+window/stretch/mode="canvas_items"
+window/stretch/aspect="keep"
+window/vsync/vsync_mode=1
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+textures/canvas_textures/default_texture_filter=0
+anti_aliasing/quality/msaa_3d=0
+anti_aliasing/quality/screen_space_aa=0
+textures/default_filters/anisotropic_filtering_level=0
+environment/defaults/default_clear_color=Color(0.0627, 0.0627, 0.3765, 1)

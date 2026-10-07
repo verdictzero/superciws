@@ -1,0 +1,9 @@
+# Godot
+.godot/
+*.import
+!assets/**/*.import
+# builds
+build/
+*.tmp
+# local
+.DS_Store

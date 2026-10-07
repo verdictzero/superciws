@@ -1,0 +1,65 @@
+name: Build SUPER CIWS
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+  workflow_dispatch:
+
+env:
+  GODOT_VERSION: "4.5"
+  GODOT_RELEASE: "stable"
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download Godot and export templates
+        run: |
+          set -e
+          V="${GODOT_VERSION}-${GODOT_RELEASE}"
+          curl -sSL -o godot.zip "https://github.com/godotengine/godot/releases/download/${V}/Godot_v${V}_linux.x86_64.zip"
+          unzip -q godot.zip && mv Godot_v${V}_linux.x86_64 godot && chmod +x godot
+          curl -sSL -o templates.tpz "https://github.com/godotengine/godot/releases/download/${V}/Godot_v${V}_export_templates.tpz"
+          mkdir -p ~/.local/share/godot/export_templates/${GODOT_VERSION}.${GODOT_RELEASE}
+          unzip -q -j templates.tpz "templates/linux_release.x86_64" "templates/windows_release_x86_64.exe" "templates/version.txt" \
+            -d ~/.local/share/godot/export_templates/${GODOT_VERSION}.${GODOT_RELEASE}
+
+      - name: Import project
+        run: ./godot --headless --path . --import
+
+      - name: Export Linux
+        run: |
+          mkdir -p build/linux
+          ./godot --headless --path . --export-release "Linux" build/linux/superciws.x86_64
+
+      - name: Export Windows
+        run: |
+          mkdir -p build/windows
+          ./godot --headless --path . --export-release "Windows" build/windows/superciws.exe
+
+      - name: Package
+        run: |
+          cd build/linux && zip -r ../superciws-linux-x86_64.zip . && cd ../..
+          cd build/windows && zip -r ../superciws-windows-x86_64.zip . && cd ../..
+          ls -la build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: superciws-linux-x86_64
+          path: build/superciws-linux-x86_64.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: superciws-windows-x86_64
+          path: build/superciws-windows-x86_64.zip
+
+      - name: Release (tags only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            build/superciws-linux-x86_64.zip
+            build/superciws-windows-x86_64.zip
