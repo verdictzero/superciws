@@ -8,8 +8,8 @@ shader_type canvas_item;
 
 uniform sampler2D screen_tex : filter_nearest, repeat_disable;
 uniform vec2 low_res = vec2(256.0, 192.0);
-uniform int palette_size = 32;
-uniform vec4 palette[32];
+uniform int palette_size = 64;
+uniform vec4 palette[64];
 uniform float mask_strength : hint_range(0.0, 1.0) = 0.55;
 uniform float row_gap : hint_range(0.0, 1.0) = 0.30;
 uniform float dither : hint_range(0.0, 1.0) = 0.0;
@@ -45,18 +45,14 @@ void fragment() {
 		}
 	}
 
-	// LCD sub-pixel stripes: each source pixel = one R|G|B triad.
-	float sub = fract(px.x) * 3.0;
-	int s = int(floor(sub));
+	// LCD sub-pixel stripes in *screen* pixels: R|G|B triads like a real panel,
+	// so the mask stays crisp whatever the internal resolution or window size.
+	int s = int(mod(FRAGCOORD.x, 3.0));
 	vec3 m = vec3(1.0 - mask_strength);
 	if (s == 0) { m.r = 1.0; } else if (s == 1) { m.g = 1.0; } else { m.b = 1.0; }
-	// soften stripe edge a touch so it reads as glass, not a grid of dots
-	float edge = smoothstep(0.0, 0.15, fract(sub)) * smoothstep(1.0, 0.85, fract(sub));
-	m = mix(vec3(1.0 - mask_strength * 0.5), m, 0.6 + 0.4 * edge);
 
-	// horizontal row gap between pixel rows
-	float row = fract(px.y);
-	float gapf = row > 0.78 ? (1.0 - row_gap) : 1.0;
+	// horizontal gap line every third screen row
+	float gapf = mod(FRAGCOORD.y, 3.0) >= 2.0 ? (1.0 - row_gap) : 1.0;
 
 	COLOR = vec4(bc * m * gapf * gain, 1.0);
 }

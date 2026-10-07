@@ -4,9 +4,9 @@ Retro arcade roguelike. You are a stationary CIWS battery in the desert. The gun
 stops firing; you aim with the stick, intercept drones and missiles, level up Vampire
 Survivors style, and loot elite kills through a slot machine.
 
-Built with **Godot 4.5** (GL Compatibility renderer). Renders at 256x192 (4:3), then a
-post shader quantises everything to a 32-colour SNES-style palette and applies an LCD
-sub-pixel mask at native resolution.
+Built with **Godot 4.5** (GL Compatibility renderer). Renders 3D at 512x384 (4:3) with a chunky 256x192 HUD, then a post shader quantises
+everything to a 64-colour SNES-style palette and applies an LCD sub-pixel mask in screen
+pixels.
 
 ## Controls (arcade cabinet: stick + 1 button, optional 2nd button)
 
@@ -25,11 +25,13 @@ the directed energy beam once you own it. Missiles auto-launch when ready.
 ## Progression
 
 - Kills drop XP chips that fly to the battery. Level up = pick 1 of 3 cards.
-- Weapons (map to addon meshes in `player_ciws.glb`): Vulcan, AESA Radar, DEW Laser, Quad Missiles.
+- Weapons (map to addon meshes in `player_ciws.glb`): Vulcan, AESA Radar, Quad Missiles, DEW Laser.
+  The DEW Laser mounts on top of the missile pod, so it is only offered once you own Quad Missiles.
 - Passives: Armor, Nanites, Hydraulics, Coolant, Optics, Scavenger, Lucky Charm, Tracers.
 - Max-level weapon + the right passive = evolution, granted by the next loot crate.
 - Gold / purple elites and UFO bosses drop a parachuted crate that spins a 3-reel slot
   machine: 1 reward, triple (3) or jackpot (5).
+- Level-up and loot screens freeze the world.
 - 3 lives per credit, continue countdown, combo multiplier scoring, persistent top-10
   high score table with initials entry, attract mode.
 

@@ -16,8 +16,8 @@ const WEAPONS := {
 	},
 	"laser": {
 		"name": "DEW LASER", "kind": "weapon", "max": 6, "icon": "L", "color": Palette.CYAN,
-		"node": "directedEnergyWeaponAddon",
-		"desc": ["HOLD BUTTON: BEAM", "+50% BEAM DAMAGE", "+50% HEAT CAPACITY", "2X COOLING", "+100% BEAM DAMAGE", "WIDE BEAM"],
+		"node": "directedEnergyWeaponAddon", "requires": "missiles",
+		"desc": ["HOLD BUTTON: BEAM (ON MISSILE POD)", "+50% BEAM DAMAGE", "+50% HEAT CAPACITY", "2X COOLING", "+100% BEAM DAMAGE", "WIDE BEAM"],
 	},
 	"missiles": {
 		"name": "QUAD MISSILES", "kind": "weapon", "max": 6, "icon": "M", "color": Palette.ORANGE,

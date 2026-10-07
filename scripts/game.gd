@@ -123,6 +123,8 @@ func can_offer(id: String) -> bool:
 	var lvl := item_level(id)
 	if lvl >= int(d["max"]):
 		return false
+	if d.has("requires") and item_level(d["requires"]) == 0:
+		return false
 	if lvl == 0:
 		if d["kind"] == "weapon" and owned_weapons().size() >= MAX_WEAPONS:
 			return false

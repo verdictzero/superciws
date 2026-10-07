@@ -8,6 +8,8 @@ var logo: Texture2D
 var title_bg: Texture2D
 var _time := 0.0
 
+const S := 2.0   # viewport pixels per HUD pixel
+
 func _ready() -> void:
 	logo = load("res://assets/textures/logo.png")
 	title_bg = load("res://assets/textures/title_bg.png")
@@ -118,7 +120,7 @@ func _draw_playing() -> void:
 			var p: Vector3 = e.global_position
 			if cam.is_position_behind(p):
 				continue
-			var sp := cam.unproject_position(p)
+			var sp := cam.unproject_position(p) / S
 			var col := Palette.GREEN
 			if e.type == e.Type.MISSILE: col = Palette.RED
 			if e.elite == 1: col = Palette.YELLOW
@@ -131,7 +133,7 @@ func _draw_playing() -> void:
 					draw_rect(Rect2(ep - Vector2(2, 2), Vector2(4, 4)), c(col))
 				continue
 			var dist := p.distance_to(cam.global_position)
-			var s := clampf(e.radius * 180.0 / max(dist, 1.0), 3.0, 14.0)
+			var s := clampf(e.radius * 180.0 / maxf(dist, 1.0), 3.0, 14.0)
 			_bracket(sp, s, c(col))
 			if e.is_boss or e.elite > 0:
 				bar(sp.x - 8, sp.y - s - 4, 16, 2, e.hp / e.max_hp, Palette.RED, Palette.DARK)
@@ -140,14 +142,14 @@ func _draw_playing() -> void:
 		if t != null:
 			var lp: Vector3 = main.lead_point(t)
 			if not cam.is_position_behind(lp):
-				var sp := cam.unproject_position(lp)
+				var sp := cam.unproject_position(lp) / S
 				_diamond(sp, 3, c(Palette.CYAN))
 	if radar >= 1:
 		_scope(enemies)
 
 	# crosshair sits where the gun line projects, not the screen centre
 	var aim_pt: Vector3 = main.turret.muzzle_pos() + main.turret.aim_dir() * 300.0
-	var ap := cam.unproject_position(aim_pt)
+	var ap := cam.unproject_position(aim_pt) / S
 	var cx := floorf(clampf(ap.x, 8, 248))
 	var cy := floorf(clampf(ap.y, 8, 184))
 	var wc := c(Palette.WHITE)

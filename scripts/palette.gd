@@ -1,6 +1,6 @@
 class_name Palette
 ## The whole game is quantised to this list by the post shader.
-## 32 colours, SNES / SuperFX flavoured. Swap entries here to restyle the game.
+## 64 colours, SNES / SuperFX flavoured. Swap entries here to restyle the game.
 
 const COLORS: PackedColorArray = [
 	Color("#000000"), # 0 black
@@ -35,6 +35,38 @@ const COLORS: PackedColorArray = [
 	Color("#d8c8b0"), # 29 bone
 	Color("#503020"), # 30 dark brown
 	Color("#e86040"), # 31 salmon
+	Color("#181828"), # 32 ink
+	Color("#2c2c48"), # 33 charcoal blue
+	Color("#585878"), # 34 steel
+	Color("#8888a8"), # 35 light steel
+	Color("#c0c0d0"), # 36 silver
+	Color("#0c0c48"), # 37 midnight
+	Color("#1c2888"), # 38 navy
+	Color("#3858c8"), # 39 royal blue
+	Color("#6098f0"), # 40 sky
+	Color("#a0d8ff"), # 41 ice
+	Color("#a06838"), # 42 dark ochre
+	Color("#d09850"), # 43 amber
+	Color("#f0c880"), # 44 wheat
+	Color("#f8f0c8"), # 45 cream
+	Color("#602810"), # 46 dark rust
+	Color("#a02818"), # 47 dark red
+	Color("#f85838"), # 48 coral
+	Color("#f8a040"), # 49 light orange
+	Color("#f8f060"), # 50 light yellow
+	Color("#083018"), # 51 pine
+	Color("#187830"), # 52 forest
+	Color("#40c860"), # 53 leaf
+	Color("#90f090"), # 54 mint
+	Color("#105060"), # 55 dark teal
+	Color("#28a0b0"), # 56 sea
+	Color("#90f0f8"), # 57 light cyan
+	Color("#401060"), # 58 deep purple
+	Color("#9040c0"), # 59 violet
+	Color("#e080f0"), # 60 orchid
+	Color("#f8c8e0"), # 61 light pink
+	Color("#b06040"), # 62 terracotta
+	Color("#e8a080"), # 63 peach
 ]
 
 # Named handles used by code so the HUD and world pick palette-safe colours.

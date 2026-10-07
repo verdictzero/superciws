@@ -4,8 +4,9 @@ extends Node
 
 enum State { TITLE, SCORES, PLAYING, LEVELUP, SLOT, DESTROYED, CONTINUE, GAMEOVER, NAME_ENTRY }
 
-const VIEW_W := 256
-const VIEW_H := 192
+const VIEW_W := 512
+const VIEW_H := 384
+const HUD_SCALE := 2
 const ALPHABET := "ABCDEFGHIJKLMNOPQRSTUVWXYZ. "
 
 var state: int = State.TITLE
@@ -106,6 +107,8 @@ func _build_scene() -> void:
 	view.screen_space_aa = Viewport.SCREEN_SPACE_AA_DISABLED
 	view.canvas_item_default_texture_filter = Viewport.DEFAULT_CANVAS_ITEM_TEXTURE_FILTER_NEAREST
 	view.handle_input_locally = false
+	# Main is PROCESS_MODE_ALWAYS so menus keep running; the game world must not inherit that.
+	view.process_mode = Node.PROCESS_MODE_PAUSABLE
 	add_child(view)
 
 	world = World.new()
@@ -122,11 +125,12 @@ func _build_scene() -> void:
 	view.add_child(laser)
 
 	var layer := CanvasLayer.new()
+	layer.scale = Vector2(HUD_SCALE, HUD_SCALE)   # HUD stays chunky 256x192 pixels
 	view.add_child(layer)
 	hud = Hud.new()
 	hud.main = self
 	hud.process_mode = Node.PROCESS_MODE_ALWAYS
-	hud.size = Vector2(VIEW_W, VIEW_H)
+	hud.size = Vector2(VIEW_W / HUD_SCALE, VIEW_H / HUD_SCALE)
 	layer.add_child(hud)
 
 	screen = ColorRect.new()
@@ -135,7 +139,7 @@ func _build_scene() -> void:
 	screen_mat = ShaderMaterial.new()
 	screen_mat.shader = load("res://shaders/retro.gdshader")
 	var pal := PackedColorArray(Palette.COLORS)
-	while pal.size() < 32:
+	while pal.size() < 64:
 		pal.append(Color.BLACK)
 	screen_mat.set_shader_parameter("palette", pal)
 	screen_mat.set_shader_parameter("palette_size", Palette.COLORS.size())
