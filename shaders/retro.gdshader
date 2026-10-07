@@ -8,7 +8,7 @@ shader_type canvas_item;
 
 uniform sampler2D screen_tex : filter_nearest, repeat_disable;
 uniform vec2 low_res = vec2(256.0, 192.0);
-uniform int palette_size = 22;
+uniform int palette_size = 32;
 uniform vec4 palette[32];
 uniform float mask_strength : hint_range(0.0, 1.0) = 0.55;
 uniform float row_gap : hint_range(0.0, 1.0) = 0.30;

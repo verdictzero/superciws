@@ -1,6 +1,6 @@
 class_name Palette
 ## The whole game is quantised to this list by the post shader.
-## 22 colours, SNES / SuperFX flavoured. Swap entries here to restyle the game.
+## 32 colours, SNES / SuperFX flavoured. Swap entries here to restyle the game.
 
 const COLORS: PackedColorArray = [
 	Color("#000000"), # 0 black
@@ -25,6 +25,16 @@ const COLORS: PackedColorArray = [
 	Color("#40e8f8"), # 19 cyan
 	Color("#c040e0"), # 20 purple
 	Color("#f8a0d0"), # 21 pink
+	Color("#c05020"), # 22 rust
+	Color("#f8c060"), # 23 gold
+	Color("#a08060"), # 24 dusty tan
+	Color("#104020"), # 25 dark green
+	Color("#60a040"), # 26 mid green
+	Color("#206080"), # 27 teal
+	Color("#602080"), # 28 dark purple
+	Color("#d8c8b0"), # 29 bone
+	Color("#503020"), # 30 dark brown
+	Color("#e86040"), # 31 salmon
 ]
 
 # Named handles used by code so the HUD and world pick palette-safe colours.
@@ -50,6 +60,16 @@ const GREEN = 18
 const CYAN = 19
 const PURPLE = 20
 const PINK = 21
+const RUST = 22
+const GOLD = 23
+const TAN = 24
+const DARK_GREEN = 25
+const MID_GREEN = 26
+const TEAL = 27
+const DARK_PURPLE = 28
+const BONE = 29
+const DARK_BROWN = 30
+const SALMON = 31
 
 static func c(i: int) -> Color:
 	return COLORS[i]

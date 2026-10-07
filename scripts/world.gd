@@ -20,8 +20,8 @@ func _ready() -> void:
 	seed(7)
 	_build_environment()
 	_build_ground()
-	_build_mountains(820.0, 50.0, 170.0, 80, Palette.c(Palette.DARK), Palette.c(Palette.SLATE), 1)
-	_build_mountains(540.0, 14.0, 70.0, 64, Palette.c(Palette.BROWN), Palette.c(Palette.OCHRE), 2)
+	_build_mountains(820.0, 28.0, 95.0, 48, Palette.c(Palette.DARK), Palette.c(Palette.SLATE), 1)
+	_build_mountains(540.0, 8.0, 38.0, 40, Palette.c(Palette.BROWN), Palette.c(Palette.OCHRE), 2)
 	_build_rocks()
 	_build_sun()
 
