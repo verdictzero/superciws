@@ -24,7 +24,8 @@ jobs:
           unzip -q godot.zip && mv Godot_v${V}_linux.x86_64 godot && chmod +x godot
           curl -sSL -o templates.tpz "https://github.com/godotengine/godot/releases/download/${V}/Godot_v${V}_export_templates.tpz"
           mkdir -p ~/.local/share/godot/export_templates/${GODOT_VERSION}.${GODOT_RELEASE}
-          unzip -q -j templates.tpz "templates/linux_release.x86_64" "templates/windows_release_x86_64.exe" "templates/version.txt" \
+          unzip -q -j templates.tpz "templates/linux_release.x86_64" "templates/windows_release_x86_64.exe" \
+            "templates/web_nothreads_release.zip" "templates/web_nothreads_debug.zip" "templates/android_release.apk" "templates/android_debug.apk" "templates/version.txt" \
             -d ~/.local/share/godot/export_templates/${GODOT_VERSION}.${GODOT_RELEASE}
 
       - name: Import project
@@ -40,10 +41,49 @@ jobs:
           mkdir -p build/windows
           ./godot --headless --path . --export-release "Windows" build/windows/superciws.exe
 
+      - name: Export Web (no-threads, static-host friendly, PWA)
+        run: |
+          mkdir -p build/web
+          ./godot --headless --path . --export-release "Web" build/web/index.html
+
+      - name: Android SDK build-tools + debug keystore + editor settings
+        env:
+          JAVA_HOME: ${{ env.JAVA_HOME_17_X64 }}
+        run: |
+          set -e
+          SDK="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
+          yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+          "$SDK/cmdline-tools/latest/bin/sdkmanager" "build-tools;35.0.0" "platform-tools" "platforms;android-35" > /dev/null
+          keytool -keyalg RSA -genkeypair -alias androiddebugkey -keypass android -keystore "$HOME/debug.keystore" \
+            -storepass android -dname "CN=Android Debug,O=Android,C=US" -validity 9999
+          mkdir -p ~/.config/godot
+          for f in editor_settings-4.5.tres editor_settings-4.tres; do
+            cat > ~/.config/godot/$f <<EOS
+          [gd_resource type="EditorSettings" format=3]
+
+          [resource]
+          export/android/android_sdk_path = "$SDK"
+          export/android/java_sdk_path = "$JAVA_HOME"
+          export/android/debug_keystore = "$HOME/debug.keystore"
+          export/android/debug_keystore_user = "androiddebugkey"
+          export/android/debug_keystore_pass = "android"
+          EOS
+          done
+
+      - name: Export Android (debug-signed APK)
+        env:
+          JAVA_HOME: ${{ env.JAVA_HOME_17_X64 }}
+        run: |
+          mkdir -p build/android
+          ./godot --headless --path . --export-debug "Android" build/android/superciws.apk
+          ls -la build/android
+
       - name: Package
         run: |
           cd build/linux && zip -r ../superciws-linux-x86_64.zip . && cd ../..
           cd build/windows && zip -r ../superciws-windows-x86_64.zip . && cd ../..
+          cd build/web && zip -r ../superciws-web.zip . && cd ../..
+          cp build/android/superciws.apk build/superciws-android.apk
           ls -la build
 
       - uses: actions/upload-artifact@v4
@@ -56,6 +96,16 @@ jobs:
           name: superciws-windows-x86_64
           path: build/superciws-windows-x86_64.zip
 
+      - uses: actions/upload-artifact@v4
+        with:
+          name: superciws-web
+          path: build/superciws-web.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: superciws-android
+          path: build/superciws-android.apk
+
       - name: Release (tags only)
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
@@ -63,3 +113,5 @@ jobs:
           files: |
             build/superciws-linux-x86_64.zip
             build/superciws-windows-x86_64.zip
+            build/superciws-web.zip
+            build/superciws-android.apk

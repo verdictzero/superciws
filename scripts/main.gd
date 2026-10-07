@@ -46,6 +46,19 @@ var threat := false
 var invuln := 0.0
 var _time := 0.0
 
+# --- touch ---------------------------------------------------------------
+var touch_enabled := false
+var touches: Dictionary = {}        # finger index -> {zone, start, pos, t}
+var touch_stick := Vector2.ZERO     # virtual stick vector, -1..1
+var touch_btn1_held := false
+var touch_tap := false              # one-frame edge: a short tap was released
+var touch_tap_pos := Vector2.ZERO
+var touch_btn2_tap := false
+var touch_nav := Vector2i.ZERO      # swipe direction released this frame
+var game_rect := Rect2()
+var overlay: TouchOverlay
+var lut_view: SubViewport
+
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	Sfx.process_mode = Node.PROCESS_MODE_ALWAYS
@@ -56,7 +69,7 @@ func _ready() -> void:
 	_enter(State.TITLE)
 	_apply_debug_args()
 
-## Command line (after "--"): --autostart  --fast-forward=SECONDS  --state=levelup|slot|scores|continue|nameentry|destroyed  --autoaim
+## Command line (after "--"): --autostart  --fast-forward=SECONDS  --state=levelup|slot|scores|continue|nameentry|destroyed  --autoaim  --touch
 func _apply_debug_args() -> void:
 	var args := OS.get_cmdline_user_args()
 	if args.is_empty():
@@ -87,6 +100,9 @@ func _apply_debug_args() -> void:
 			pending_levelups = 0
 		elif a == "--autoaim":
 			debug_autoaim = true
+		elif a == "--touch":
+			touch_enabled = true
+			_layout()
 		elif a.begins_with("--state="):
 			match a.get_slice("=", 1):
 				"levelup": _enter(State.LEVELUP)
@@ -148,6 +164,59 @@ func _build_scene() -> void:
 	screen.material = screen_mat
 	add_child(screen)
 
+	# palette lookup table, rendered once on the GPU
+	lut_view = SubViewport.new()
+	lut_view.size = Vector2i(1024, 32)
+	lut_view.disable_3d = true
+	lut_view.transparent_bg = false
+	lut_view.render_target_update_mode = SubViewport.UPDATE_ONCE
+	var lut_rect := ColorRect.new()
+	lut_rect.size = Vector2(1024, 32)
+	var lut_mat := ShaderMaterial.new()
+	lut_mat.shader = load("res://shaders/palette_lut.gdshader")
+	lut_mat.set_shader_parameter("palette", pal)
+	lut_mat.set_shader_parameter("palette_size", Palette.COLORS.size())
+	lut_rect.material = lut_mat
+	lut_view.add_child(lut_rect)
+	add_child(lut_view)
+	screen_mat.set_shader_parameter("lut_tex", lut_view.get_texture())
+
+	overlay = TouchOverlay.new()
+	overlay.main = self
+	overlay.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(overlay)
+	touch_enabled = DisplayServer.is_touchscreen_available()
+	get_tree().root.size_changed.connect(_layout)
+	_layout()
+
+## Fit the 4:3 game inside whatever window shape we have. On touch devices in
+## portrait (phones, folded foldables) the game sits at the top so the
+## controls get the space underneath.
+func _layout() -> void:
+	var ws := Vector2(get_viewport().size)
+	if ws.x < 1.0 or ws.y < 1.0:
+		return
+	var w: float
+	var h: float
+	if ws.x / ws.y >= 4.0 / 3.0:
+		h = ws.y
+		w = h * 4.0 / 3.0
+	else:
+		w = ws.x
+		h = w * 3.0 / 4.0
+	var pos := Vector2((ws.x - w) * 0.5, (ws.y - h) * 0.5)
+	if ws.y > ws.x and touch_enabled:
+		pos.y = 0.0
+	game_rect = Rect2(pos, Vector2(w, h))
+	screen_mat.set_shader_parameter("game_rect", Vector4(pos.x / ws.x, pos.y / ws.y, w / ws.x, h / ws.y))
+	overlay.layout(ws, game_rect, touch_enabled)
+
+## Window position -> HUD (256x192) coordinates, or (-1,-1) when outside the game.
+func window_to_hud(p: Vector2) -> Vector2:
+	if not game_rect.has_point(p):
+		return Vector2(-1, -1)
+	return (p - game_rect.position) / game_rect.size * Vector2(VIEW_W / HUD_SCALE, VIEW_H / HUD_SCALE)
+
 # --- input -----------------------------------------------------------------
 func _key(k: Key) -> InputEventKey:
 	var e := InputEventKey.new()
@@ -192,7 +261,57 @@ func _setup_input() -> void:
 	_action("fullscreen", [_key(KEY_F11)])
 	_action("quit", [_key(KEY_ESCAPE)])
 
+func _touch_zone(p: Vector2) -> String:
+	if p.distance_to(overlay.btn2_center) <= overlay.btn2_radius * 1.3 and state == State.PLAYING and Game.missile_count > 0:
+		return "btn2"
+	if p.x < get_viewport().size.x * 0.5:
+		return "stick"
+	return "btn1"
+
+func _handle_touch(event: InputEvent) -> void:
+	if not touch_enabled:
+		touch_enabled = true
+		_layout()
+	if event is InputEventScreenTouch:
+		if event.pressed:
+			var zone := _touch_zone(event.position)
+			touches[event.index] = {"zone": zone, "start": event.position, "pos": event.position, "t": _time}
+			if zone == "btn2":
+				touch_btn2_tap = true
+		elif touches.has(event.index):
+			var t: Dictionary = touches[event.index]
+			var d: Vector2 = event.position - t["start"]
+			var ui: float = overlay.ui
+			if _time - t["t"] < 0.4 and d.length() < ui * 0.35:
+				touch_tap = true
+				touch_tap_pos = event.position
+			elif d.length() > ui * 0.8 and state != State.PLAYING:
+				if absf(d.x) > absf(d.y):
+					touch_nav = Vector2i(signi(int(d.x)), 0)
+				else:
+					touch_nav = Vector2i(0, signi(int(d.y)))
+			touches.erase(event.index)
+	elif event is InputEventScreenDrag and touches.has(event.index):
+		var t: Dictionary = touches[event.index]
+		t["pos"] = event.position
+		if t["zone"] == "stick":
+			var v: Vector2 = (event.position - t["start"]) / overlay.stick_radius
+			touch_stick = v.limit_length(1.0)
+	# derived states
+	touch_btn1_held = false
+	var stick_active := false
+	for t in touches.values():
+		if t["zone"] == "btn1":
+			touch_btn1_held = true
+		if t["zone"] == "stick":
+			stick_active = true
+	if not stick_active:
+		touch_stick = Vector2.ZERO
+
 func _input(event: InputEvent) -> void:
+	if event is InputEventScreenTouch or event is InputEventScreenDrag:
+		_handle_touch(event)
+		return
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		mouse_delta += event.relative
 	if event.is_action_pressed("fullscreen"):
@@ -207,7 +326,25 @@ func _input(event: InputEvent) -> void:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 func btn1() -> bool:
-	return Input.is_action_just_pressed("btn1")
+	return Input.is_action_just_pressed("btn1") or touch_tap
+
+func btn1_held() -> bool:
+	return Input.is_action_pressed("btn1") or touch_btn1_held
+
+func btn2() -> bool:
+	return Input.is_action_just_pressed("btn2") or touch_btn2_tap
+
+func nav_left() -> bool:
+	return Input.is_action_just_pressed("ui_left") or Input.is_action_just_pressed("aim_left") or touch_nav.x < 0
+
+func nav_right() -> bool:
+	return Input.is_action_just_pressed("ui_right") or Input.is_action_just_pressed("aim_right") or touch_nav.x > 0
+
+func nav_up() -> bool:
+	return Input.is_action_just_pressed("ui_up") or Input.is_action_just_pressed("aim_up") or touch_nav.y < 0
+
+func nav_down() -> bool:
+	return Input.is_action_just_pressed("ui_down") or Input.is_action_just_pressed("aim_down") or touch_nav.y > 0
 
 # --- state machine ---------------------------------------------------------
 func _enter(s: int) -> void:
@@ -240,6 +377,7 @@ func _enter(s: int) -> void:
 			state_timer = 3.0
 			Sfx.play("explode_big")
 			Sfx.play("lost_life")
+			Input.vibrate_handheld(400)
 			Explosion.spawn(fx, turret.gun_pos(), 4.0, [Palette.ORANGE, Palette.YELLOW, Palette.WHITE, Palette.RED], 18)
 			turret.set_destroyed(true)
 			Game.lives -= 1
@@ -349,12 +487,16 @@ func _process(delta: float) -> void:
 		State.NAME_ENTRY:
 			_update_name_entry()
 	mouse_delta = Vector2.ZERO
+	touch_tap = false
+	touch_btn2_tap = false
+	touch_nav = Vector2i.ZERO
 
 # --- gameplay --------------------------------------------------------------
 func _update_playing(delta: float) -> void:
 	Game.tick(delta)
 	invuln = max(0.0, invuln - delta)
 	var stick := Input.get_vector("aim_left", "aim_right", "aim_down", "aim_up")
+	stick = (stick + Vector2(touch_stick.x, -touch_stick.y)).limit_length(1.0)
 	turret.aim(stick, mouse_delta, delta)
 	if debug_autoaim:
 		var ne := nearest_enemy(turret.gun_pos())
@@ -375,7 +517,7 @@ func _update_playing(delta: float) -> void:
 
 	# beam weapon on the button
 	if Game.item_level("laser") > 0:
-		var want := Input.is_action_pressed("btn1") and not laser_locked
+		var want := btn1_held() and not laser_locked
 		if want:
 			laser.fire(turret.muzzle_pos(), turret.aim_dir(), delta, Game.laser_dps, Game.laser_wide, Game.evolved.has("laser"))
 			Sfx.loop("laser", true)
@@ -397,7 +539,7 @@ func _update_playing(delta: float) -> void:
 		missile_timer -= delta
 		if missile_timer <= 0.0:
 			var near := nearest_enemy(Vector3(0, 14, 0))
-			var manual := Input.is_action_just_pressed("btn2")
+			var manual := btn2()
 			if near != null and (manual or near.global_position.length() < 230.0):
 				_launch_salvo()
 				missile_timer = Game.missile_cooldown
@@ -582,6 +724,7 @@ func player_hit(dmg: float, at: Vector3) -> void:
 	Game.hp -= dmg
 	damage_flash = 1.0
 	Sfx.play("damage")
+	Input.vibrate_handheld(90)
 	Explosion.spawn(fx, at, 1.4, [Palette.RED, Palette.ORANGE, Palette.WHITE], 10)
 	Game.multiplier = 1
 
@@ -598,11 +741,29 @@ func open_crate(kind: String) -> void:
 	_start_slot(kind)
 
 # --- level up --------------------------------------------------------------
+func _card_at(window_pos: Vector2) -> int:
+	var hp := window_to_hud(window_pos)
+	if hp.x < 0:
+		return -1
+	for i in levelup_choices.size():
+		if Rect2(8 + i * 82, 42, 76, 112).has_point(hp):
+			return i
+	return -1
+
 func _update_levelup() -> void:
-	if Input.is_action_just_pressed("ui_left") or Input.is_action_just_pressed("aim_left"):
+	if touch_tap:
+		# tap a card to select it; tap the selected card (or OK) to take it
+		var idx := _card_at(touch_tap_pos)
+		if idx >= 0 and idx != levelup_cursor:
+			levelup_cursor = idx
+			Sfx.play("select")
+			touch_tap = false
+		elif idx < 0 and game_rect.has_point(touch_tap_pos):
+			touch_tap = false
+	if nav_left():
 		levelup_cursor = (levelup_cursor - 1 + levelup_choices.size()) % levelup_choices.size()
 		Sfx.play("select")
-	if Input.is_action_just_pressed("ui_right") or Input.is_action_just_pressed("aim_right"):
+	if nav_right():
 		levelup_cursor = (levelup_cursor + 1) % levelup_choices.size()
 		Sfx.play("select")
 	if btn1():
@@ -691,13 +852,13 @@ func _update_slot(delta: float) -> void:
 # --- initials --------------------------------------------------------------
 func _update_name_entry() -> void:
 	var n := ALPHABET.length()
-	if Input.is_action_just_pressed("ui_up") or Input.is_action_just_pressed("aim_up"):
+	if nav_up():
 		name_letters[name_cursor] = (name_letters[name_cursor] + 1) % n
 		Sfx.play("select")
-	if Input.is_action_just_pressed("ui_down") or Input.is_action_just_pressed("aim_down"):
+	if nav_down():
 		name_letters[name_cursor] = (name_letters[name_cursor] - 1 + n) % n
 		Sfx.play("select")
-	if Input.is_action_just_pressed("ui_left") or Input.is_action_just_pressed("aim_left"):
+	if nav_left():
 		name_cursor = max(0, name_cursor - 1)
 	if btn1():
 		Sfx.play("confirm")

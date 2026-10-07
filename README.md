@@ -39,20 +39,39 @@ the directed energy beam once you own it. Missiles auto-launch when ready.
 - 3 lives per credit, continue countdown, combo multiplier scoring, persistent top-10
   high score table with initials entry, attract mode.
 
+## Touch and mobile
+
+Touch controls appear automatically on a touchscreen (or with `--touch`):
+
+- Left half of the screen: floating virtual stick, aims the turret.
+- Right half: FIRE / BEAM button (tap, or hold for the laser). In menus it is OK.
+- MSL button: fires a missile salvo early once the pod is owned.
+- Menus: tap a card to select it, tap again to take it; swipe to move; tap to confirm.
+- The game stays 4:3. Landscape phones get the controls in the side bars (or over the
+  edges when the bars are thin); portrait and folded devices put the game at the top with
+  the controls underneath. The layout re-flows live when a foldable opens or closes.
+- Taking damage vibrates the device.
+
+Android (APK, arm64 + armv7, any orientation, immersive) and Web (no-threads build, works on
+plain static hosts and installs as a PWA) presets are included and built by CI.
+
 ## Building
 
 Exports for Linux and Windows are produced by `.github/workflows/build.yml` on every push
 (artifacts) and attached to a GitHub release on `v*` tags.
 
-Locally, with Godot 4.5 and its export templates installed:
+Locally, with Godot 4.5 and its export templates installed (Android also needs the SDK
+build-tools and a debug keystore configured in the editor settings):
 
 ```
 godot --headless --path . --import
 godot --headless --path . --export-release "Linux"   build/linux/superciws.x86_64
 godot --headless --path . --export-release "Windows" build/windows/superciws.exe
+godot --headless --path . --export-release "Web"     build/web/index.html
+godot --headless --path . --export-release "Android" build/android/superciws.apk
 ```
 
-Debug launch flags (after `--`): `--autostart`, `--fast-forward=120`, `--autoaim`,
+Debug launch flags (after `--`): `--autostart`, `--fast-forward=120`, `--autoaim`, `--touch`,
 `--state=levelup|slot|scores|continue|nameentry|destroyed`.
 
 ## Credits
