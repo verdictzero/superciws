@@ -456,7 +456,7 @@ func _process(delta: float) -> void:
 	screen_mat.set_shader_parameter("flash", flash)
 	screen_mat.set_shader_parameter("damage", damage_flash)
 	if Enemy.pulse_mat:
-		Enemy.pulse_mat.emission_energy_multiplier = 1.0 + 3.0 * max(0.0, sin(_time * 9.0))
+		World.set_emission(Enemy.pulse_mat, Palette.c(Palette.ORANGE) * (1.0 + 3.0 * max(0.0, sin(_time * 9.0))))
 	match state:
 		State.TITLE:
 			attract_timer -= delta

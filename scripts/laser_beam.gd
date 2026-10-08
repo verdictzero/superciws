@@ -18,7 +18,7 @@ func _make_beam(width: float, color: int) -> MeshInstance3D:
 	var bm := BoxMesh.new()
 	bm.size = Vector3(width, width, 1.0)
 	mi.mesh = bm
-	mi.material_override = World.flat_material(Palette.c(color), true)
+	mi.material_override = World.flat_material(Palette.c(color))
 	mi.top_level = true
 	add_child(mi)
 	return mi

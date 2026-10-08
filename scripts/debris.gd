@@ -27,7 +27,7 @@ func _build(count: int, colors: Array, boost: float) -> void:
 	for i in count:
 		var mi := MeshInstance3D.new()
 		mi.mesh = _box
-		mi.material_override = World.flat_material(Palette.c(colors[i % colors.size()]), false, 1.0)
+		mi.material_override = World.toon(Palette.c(colors[i % colors.size()]), 1.0, -0.5, 0.5)
 		mi.scale = Vector3(randf_range(0.8, 2.6), randf_range(0.4, 1.2), randf_range(0.8, 3.0)) * _size
 		mi.rotation = Vector3(randf() * TAU, randf() * TAU, randf() * TAU)
 		add_child(mi)

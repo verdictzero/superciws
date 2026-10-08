@@ -13,7 +13,7 @@ func _ready() -> void:
 	if _mesh == null:
 		_mesh = BoxMesh.new()
 		_mesh.size = Vector3(0.45, 0.45, 7.0)
-		_mat = World.flat_material(Palette.c(Palette.YELLOW), true)
+		_mat = World.flat_material(Palette.c(Palette.YELLOW))
 	var mi := MeshInstance3D.new()
 	mi.mesh = _mesh
 	mi.material_override = _mat

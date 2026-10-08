@@ -11,13 +11,13 @@ func _ready() -> void:
 	var bm := BoxMesh.new()
 	bm.size = Vector3(4, 4, 4)
 	box.mesh = bm
-	box.material_override = World.flat_material(Palette.c(Palette.OCHRE), false, 1.0)
+	box.material_override = World.toon(Palette.c(Palette.OCHRE), 1.0)
 	add_child(box)
 	var stripe := MeshInstance3D.new()
 	var sm := BoxMesh.new()
 	sm.size = Vector3(4.2, 1.2, 4.2)
 	stripe.mesh = sm
-	stripe.material_override = World.flat_material(Palette.c(Palette.YELLOW if kind != "purple" else Palette.PURPLE), true)
+	stripe.material_override = World.flat_material(Palette.c(Palette.YELLOW if kind != "purple" else Palette.PURPLE))
 	add_child(stripe)
 	var chute := MeshInstance3D.new()
 	var cm := CylinderMesh.new()
@@ -27,7 +27,7 @@ func _ready() -> void:
 	cm.radial_segments = 8
 	cm.rings = 1
 	chute.mesh = cm
-	chute.material_override = World.flat_material(Palette.c(Palette.OFFWHITE if kind != "purple" else Palette.PINK), false, 1.0)
+	chute.material_override = World.toon(Palette.c(Palette.OFFWHITE if kind != "purple" else Palette.PINK), 1.0)
 	chute.position = Vector3(0, 9.0, 0)
 	add_child(chute)
 	_sway = randf() * TAU

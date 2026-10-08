@@ -1,35 +1,45 @@
 class_name World
 extends Node3D
 ## Procedural desert: flat sand, two rings of low-poly mountains, rocks, a sun.
-## Everything is flat-coloured and toon lit (hard lit/shadow split) with ink outlines.
+## Everything is toon lit (hard lit/shadow split) with a vertical colour gradient that the
+## post filter Bayer-dithers, plus ink outlines on props.
 
 var sun_dir := Vector3(-0.45, -0.55, 0.7).normalized()
 var _cactus_mats: Array = []
 
 static var _outlines: Dictionary = {}
 
-static func flat_material(color: Color, unshaded: bool = false, outline_px: float = 0.0) -> StandardMaterial3D:
+## Unlit solid colour: bullets, flashes, beams, glows.
+static func flat_material(color: Color) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
 	m.albedo_color = color
 	m.metallic = 0.0
 	m.specular_mode = BaseMaterial3D.SPECULAR_DISABLED
 	m.cull_mode = BaseMaterial3D.CULL_DISABLED
 	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
-	if unshaded:
-		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		m.roughness = 1.0
-	else:
-		toonify(m)
-	if outline_px > 0.0:
-		m.next_pass = outline(outline_px)
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.roughness = 1.0
 	return m
 
-## Cel shading: per-pixel toon diffuse, low roughness gives a hard terminator.
-static func toonify(m: StandardMaterial3D) -> void:
-	m.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
-	m.diffuse_mode = BaseMaterial3D.DIFFUSE_TOON
-	m.specular_mode = BaseMaterial3D.SPECULAR_DISABLED
-	m.roughness = 0.12
+## Lit toon material with a vertical gradient from y0 (dark) to y1 (bright), in model space
+## or world space. outline_px > 0 adds an ink line; fog = false keeps it crisp at range.
+static func toon(color: Color, outline_px: float = 0.0, y0: float = -1.0, y1: float = 1.0,
+		world_space: bool = false, fog: bool = true) -> ShaderMaterial:
+	var m := ShaderMaterial.new()
+	m.shader = load("res://shaders/toon.gdshader" if fog else "res://shaders/toon_nofog.gdshader")
+	m.set_shader_parameter("albedo", color)
+	m.set_shader_parameter("grad_y0", y0)
+	m.set_shader_parameter("grad_y1", y1)
+	m.set_shader_parameter("world_space", world_space)
+	if outline_px > 0.0:
+		m.next_pass = outline(outline_px, Color.BLACK, fog)
+	return m
+
+static func set_albedo(m: ShaderMaterial, color: Color) -> void:
+	m.set_shader_parameter("albedo", color)
+
+static func set_emission(m: ShaderMaterial, color: Color) -> void:
+	m.set_shader_parameter("emission", color)
 
 ## Shared ink-line shell material (constant on-screen width), cached per style.
 static func outline(width_px: float = 1.0, ink: Color = Color.BLACK, fog: bool = true) -> ShaderMaterial:
@@ -55,10 +65,10 @@ func _build_environment() -> void:
 	var env := Environment.new()
 	env.background_mode = Environment.BG_SKY
 	var sky := Sky.new()
-	# Hard-banded sunset: a constant-step gradient of exact palette colours,
-	# wrapped as a panorama so bands follow elevation. Zero muddy blends.
+	# Sunset: a smooth gradient between palette colours, wrapped as a panorama so it
+	# follows elevation. The post filter Bayer-dithers the blends into the palette.
 	var grad := Gradient.new()
-	grad.interpolation_mode = Gradient.GRADIENT_INTERPOLATE_CONSTANT
+	grad.interpolation_mode = Gradient.GRADIENT_INTERPOLATE_LINEAR
 	grad.offsets = PackedFloat32Array([0.0, 0.14, 0.24, 0.33, 0.42, 0.455, 0.485, 0.5, 1.0])
 	grad.colors = PackedColorArray([
 		Palette.c(Palette.NIGHT), Palette.c(Palette.DEEP_BLUE), Palette.c(Palette.BLUE),
@@ -72,7 +82,7 @@ func _build_environment() -> void:
 	gt.fill_to = Vector2(0, 1)
 	var mat := PanoramaSkyMaterial.new()
 	mat.panorama = gt
-	mat.filter = false
+	mat.filter = true
 	sky.sky_material = mat
 	env.sky = sky
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
@@ -102,7 +112,7 @@ func _build_ground() -> void:
 	pm.subdivide_width = 48
 	pm.subdivide_depth = 48
 	mi.mesh = pm
-	mi.material_override = flat_material(Palette.c(Palette.TAN))
+	mi.material_override = toon(Palette.c(Palette.TAN))
 	mi.position.y = -0.6
 	add_child(mi)
 	# a few darker dune streaks for scale
@@ -111,7 +121,7 @@ func _build_ground() -> void:
 		var bm := BoxMesh.new()
 		bm.size = Vector3(randf_range(40, 140), randf_range(2, 5), randf_range(8, 20))
 		d.mesh = bm
-		d.material_override = flat_material(Palette.c(Palette.DARK_BROWN))
+		d.material_override = toon(Palette.c(Palette.DARK_BROWN))
 		var a := randf() * TAU
 		var r := randf_range(150, 420)
 		d.position = Vector3(cos(a) * r, -0.2, sin(a) * r)
@@ -143,13 +153,14 @@ func _build_mountains(radius: float, hmin: float, hmax: float, segments: int, li
 	var mesh := st.commit()
 	var mi := MeshInstance3D.new()
 	mi.mesh = mesh
-	var m := flat_material(Color.WHITE)
-	m.vertex_color_use_as_albedo = true
+	var m := toon(Color.WHITE, 0.0, 0.0, 90.0, true)
+	m.set_shader_parameter("use_vertex_color", true)
+	m.set_shader_parameter("grad_lo", 0.7)
 	mi.material_override = m
 	add_child(mi)
 
 func _build_rocks() -> void:
-	var rock_mats := [flat_material(Palette.c(Palette.BROWN), false, 1.0), flat_material(Palette.c(Palette.DARK_BROWN), false, 1.0), flat_material(Palette.c(Palette.UMBER), false, 1.0)]
+	var rock_mats := [toon(Palette.c(Palette.BROWN), 1.0, -0.6, 8.0, true), toon(Palette.c(Palette.DARK_BROWN), 1.0, -0.6, 8.0, true), toon(Palette.c(Palette.UMBER), 1.0, -0.6, 8.0, true)]
 	for i in 40:
 		var mi := MeshInstance3D.new()
 		var bm := BoxMesh.new()
@@ -173,7 +184,7 @@ func _build_cactus(pos: Vector3, s: float) -> void:
 	root.rotation.y = randf() * TAU
 	add_child(root)
 	if _cactus_mats.is_empty():
-		_cactus_mats = [flat_material(Palette.c(Palette.DARK_GREEN)), flat_material(Palette.c(Palette.FOREST), false, 1.0), flat_material(Palette.c(Palette.MID_GREEN), false, 1.0)]
+		_cactus_mats = [toon(Palette.c(Palette.DARK_GREEN), 0.0, -0.6, 22.0, true), toon(Palette.c(Palette.FOREST), 1.0, -0.6, 22.0, true), toon(Palette.c(Palette.MID_GREEN), 1.0, -0.6, 22.0, true)]
 	var dark: Material = _cactus_mats[0]
 	var mid: Material = _cactus_mats[1]
 	var light: Material = _cactus_mats[2]
@@ -214,6 +225,6 @@ func _build_sun() -> void:
 	sm.radial_segments = 10
 	sm.rings = 6
 	mi.mesh = sm
-	mi.material_override = flat_material(Palette.c(Palette.YELLOW), true)
+	mi.material_override = flat_material(Palette.c(Palette.YELLOW))
 	mi.position = Vector3(-sun_dir.x, -0.2, -sun_dir.z).normalized() * 1100.0
 	add_child(mi)

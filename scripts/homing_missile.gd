@@ -16,13 +16,13 @@ func _ready() -> void:
 	var bm := BoxMesh.new()
 	bm.size = Vector3(0.9, 0.9, 4.5)
 	body.mesh = bm
-	body.material_override = World.flat_material(Palette.c(Palette.OFFWHITE), false, 1.0)
+	body.material_override = World.toon(Palette.c(Palette.OFFWHITE), 1.0)
 	add_child(body)
 	var flame := MeshInstance3D.new()
 	var fm := BoxMesh.new()
 	fm.size = Vector3(0.7, 0.7, 1.6)
 	flame.mesh = fm
-	flame.material_override = World.flat_material(Palette.c(Palette.ORANGE), true)
+	flame.material_override = World.flat_material(Palette.c(Palette.ORANGE))
 	flame.position = Vector3(0, 0, 3.0)
 	add_child(flame)
 

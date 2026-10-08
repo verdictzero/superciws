@@ -5,8 +5,10 @@ stops firing; you aim with the stick, intercept drones and missiles, level up Va
 Survivors style, and loot kills of advanced units through a slot machine.
 
 Built with **Godot 4.5** (GL Compatibility renderer). Renders 3D at 512x384 (4:3) with a chunky 256x192 HUD, then a post shader quantises
-everything to a 128-colour SNES-style palette and applies an LCD sub-pixel mask in screen
-pixels.
+everything to a 128-colour SNES-style palette with palette-aware 4x4 Bayer dithering and
+applies an LCD sub-pixel mask in screen pixels. Lit objects use a toon shader with a
+vertical colour gradient (dark at the base, bright at the top) and ink outlines, so shading,
+gradients, fog and the sunset sky all break into ordered-dither patterns.
 
 ## Controls (arcade cabinet: stick + 1 button, optional 2nd button)
 

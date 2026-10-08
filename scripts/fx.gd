@@ -14,7 +14,7 @@ var _size := 1.0
 
 static func mat(idx: int) -> StandardMaterial3D:
 	if not _mats.has(idx):
-		_mats[idx] = World.flat_material(Palette.c(idx), true)
+		_mats[idx] = World.flat_material(Palette.c(idx))
 	return _mats[idx]
 
 static func spawn(parent: Node, pos: Vector3, size: float = 1.0, colors: Array = [Palette.ORANGE, Palette.YELLOW, Palette.WHITE, Palette.RED], count: int = 10) -> Explosion:

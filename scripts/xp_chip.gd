@@ -15,8 +15,8 @@ func _ready() -> void:
 	if _mesh == null:
 		_mesh = BoxMesh.new()
 		_mesh.size = Vector3(1.6, 1.6, 1.6)
-		_mat_green = World.flat_material(Palette.c(Palette.GREEN), true)
-		_mat_cyan = World.flat_material(Palette.c(Palette.CYAN), true)
+		_mat_green = World.flat_material(Palette.c(Palette.GREEN))
+		_mat_cyan = World.flat_material(Palette.c(Palette.CYAN))
 	var mi := MeshInstance3D.new()
 	mi.mesh = _mesh
 	mi.material_override = _mat_cyan if value >= 5 else _mat_green

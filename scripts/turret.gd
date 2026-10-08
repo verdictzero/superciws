@@ -66,7 +66,7 @@ func _ready() -> void:
 	sm.radial_segments = 6
 	sm.rings = 3
 	muzzle_flash.mesh = sm
-	muzzle_flash.material_override = World.flat_material(Palette.c(Palette.YELLOW), true)
+	muzzle_flash.material_override = World.flat_material(Palette.c(Palette.YELLOW))
 	muzzle_flash.visible = false
 	barrel.add_child(muzzle_flash)
 	muzzle_flash.position = Vector3(0, 0, 2.4)
@@ -79,11 +79,11 @@ func _restyle(root: Node) -> void:
 			continue
 		for i in mesh.get_surface_count():
 			var src := mesh.surface_get_material(i)
-			var m := StandardMaterial3D.new()
+			var col := Color(0.8, 0.8, 0.8)
 			if src is BaseMaterial3D:
-				m.albedo_color = src.albedo_color * Color(0.55, 0.55, 0.6)   # darker gunmetal
-			World.toonify(m)
-			m.next_pass = World.outline(1.0)
+				col = src.albedo_color
+			# darker gunmetal, one gradient over the whole mount from the sand up to the gun
+			var m := World.toon(col * Color(0.55, 0.55, 0.6), 1.0, -0.6, 18.0, true)
 			mi.set_surface_override_material(i, m)
 
 ## Pull the camera back and up for each linked mount so the whole row stays in view;

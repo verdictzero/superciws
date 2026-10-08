@@ -32,9 +32,8 @@ func _ready() -> void:
 	cm.height = 0.95
 	cm.radial_segments = 6
 	cm.rings = 1
-	var brass := World.flat_material(Palette.c(Palette.GOLD))
-	brass.emission_enabled = true   # a little glint so the brass reads against the sand
-	brass.emission = Palette.c(Palette.ORANGE) * 0.35
+	var brass := World.toon(Palette.c(Palette.GOLD), 0.0, -0.5, 0.5)
+	World.set_emission(brass, Palette.c(Palette.ORANGE) * 0.35)   # a little glint so the brass reads against the sand
 	cm.material = brass
 	multimesh = MultiMesh.new()
 	multimesh.transform_format = MultiMesh.TRANSFORM_3D

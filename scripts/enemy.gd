@@ -7,7 +7,7 @@ const TARGET := Vector3(0, 14, 0)
 
 static var _scenes: Dictionary = {}   # model name -> PackedScene
 static var flash_mat: StandardMaterial3D
-static var pulse_mat: StandardMaterial3D
+static var pulse_mat: ShaderMaterial
 static var outline_mat: ShaderMaterial   # ink outline shell
 
 var type: int = Type.QUAD
@@ -45,12 +45,9 @@ static func _ensure_templates() -> void:
 	for n in ["fixed_wing_drone", "quad_drone", "missile"]:
 		_scenes[n] = en
 	_scenes["ufo"] = uf
-	flash_mat = World.flat_material(Palette.c(Palette.WHITE), true)
-	pulse_mat = World.flat_material(Palette.c(Palette.YELLOW))   # beacon lights pop against red hulls
-	pulse_mat.emission_enabled = true
-	pulse_mat.emission = Palette.c(Palette.ORANGE)
-	pulse_mat.emission_energy_multiplier = 1.0
-	pulse_mat.disable_fog = true
+	flash_mat = World.flat_material(Palette.c(Palette.WHITE))
+	pulse_mat = World.toon(Palette.c(Palette.YELLOW), 0.0, -1.0, 1.0, false, false)   # beacon lights pop against red hulls
+	World.set_emission(pulse_mat, Palette.c(Palette.ORANGE))
 	outline_mat = World.outline(1.5, Color.BLACK, false)
 
 func setup(t: int, advanced_level: int, difficulty: float) -> void:
@@ -108,7 +105,6 @@ func _restyle(root: Node) -> void:
 			if nm.to_lower().contains("flashing"):
 				mi.set_surface_override_material(i, pulse_mat)
 				continue
-			var m := StandardMaterial3D.new()
 			# every hostile is red; the model's own light/dark parts pick one of three reds
 			var luma := 0.6
 			if src is BaseMaterial3D:
@@ -118,12 +114,10 @@ func _restyle(root: Node) -> void:
 				base = Palette.c(Palette.RED).darkened(0.45)
 			elif luma > 0.75:
 				base = Palette.c(Palette.SALMON)
-			# a small self-lit floor keeps the shadow side from melting into the sand
-			m.albedo_color = base
-			m.emission_enabled = true
-			m.emission = base * 0.12
-			World.toonify(m)
-			m.disable_fog = true   # enemies stay crisp at any range
+			# a small self-lit floor keeps the shadow side from melting into the sand;
+			# no fog so enemies stay crisp at any range
+			var m := World.toon(base, 0.0, -1.2, 1.2, false, false)
+			World.set_emission(m, base * 0.12)
 			if type != Type.UFO:
 				m.next_pass = outline_mat
 			body_mats.append([m, base])
@@ -210,9 +204,9 @@ func _update_flashing() -> void:
 	flash_on = on
 	var tier := Palette.c(Palette.YELLOW) if advanced == 1 else Palette.c(Palette.PURPLE)
 	for pair in body_mats:
-		var m: StandardMaterial3D = pair[0]
-		m.albedo_color = tier if on else pair[1]
-		m.emission = tier * 0.6 if on else pair[1] * 0.12
+		var m: ShaderMaterial = pair[0]
+		World.set_albedo(m, tier if on else pair[1])
+		World.set_emission(m, tier * 0.6 if on else pair[1] * 0.12)
 
 ## Loitering-munition style attack: cruise in at altitude weaving gently, then roll into a
 ## steep terminal dive. Heading changes are limited by a turn rate so the drone flies arcs,
