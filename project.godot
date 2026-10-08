@@ -10,7 +10,7 @@ config/name="SUPER CIWS"
 config/description="Retro roguelike arcade CIWS defense. SuperFX-style 3D with a limited palette and an LCD subpixel filter."
 run/main_scene="res://scenes/main.tscn"
 config/features=PackedStringArray("4.5", "GL Compatibility")
-config/icon="res://icon.svg"
+config/icon="res://assets/icons/icon.png"
 
 [autoload]
 
