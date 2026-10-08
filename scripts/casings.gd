@@ -22,6 +22,7 @@ var spin: Array[float] = []
 var age: Array[float] = []
 var resting: Array[bool] = []
 var count := 0
+var mount_xs: Array[float] = [0.0]   # x of each CIWS mount in the row
 var next := 0
 
 func _ready() -> void:
@@ -76,6 +77,8 @@ func _physics_process(delta: float) -> void:
 			v.y -= GRAVITY * delta
 			var p := pos[i] + v * delta
 			var half := _mount_half(p.y)
+			var mx := _nearest_mount(p.x)
+			p.x -= mx   # collide in the nearest mount's local frame
 			if absf(p.x) < half and absf(p.z) < half and p.y < MOUNT_TOP + RADIUS:
 				if pos[i].y >= MOUNT_TOP + RADIUS - 0.01:
 					# landed on top of the mount
@@ -93,6 +96,7 @@ func _physics_process(delta: float) -> void:
 			elif p.y < GROUND_Y + RADIUS:
 				p.y = GROUND_Y + RADIUS
 				v = _bounce(v, i)
+			p.x += mx
 			pos[i] = p
 			vel[i] = v
 			angle[i] += spin[i] * delta
@@ -105,6 +109,13 @@ func _physics_process(delta: float) -> void:
 		multimesh.set_instance_transform(i, t)
 		i += 1
 	multimesh.visible_instance_count = count
+
+func _nearest_mount(x: float) -> float:
+	var best := 0.0
+	for mx in mount_xs:
+		if absf(x - mx) < absf(x - best):
+			best = mx
+	return best
 
 func _bounce(v: Vector3, i: int) -> Vector3:
 	if absf(v.y) < 2.5:

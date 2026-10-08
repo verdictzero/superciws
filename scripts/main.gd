@@ -6,6 +6,7 @@ enum State { TITLE, SCORES, PLAYING, LEVELUP, SLOT, DESTROYED, CONTINUE, GAMEOVE
 
 const VIEW_W := 512
 const VIEW_H := 384
+const WING_SPACING := 17.0   # metres between linked CIWS mounts
 const HUD_SCALE := 2
 const ALPHABET := "ABCDEFGHIJKLMNOPQRSTUVWXYZ. "
 
@@ -14,13 +15,15 @@ var view: SubViewport
 var screen: ColorRect
 var screen_mat: ShaderMaterial
 var world: World
-var turret: Turret
+var turret: Turret                 # main mount: camera + player input
+var wings: Array[Turret] = []      # LINKED MOUNT wing guns, shown as the upgrade levels up
 var enemies: Node3D
 var projectiles: Node3D
 var fx: Node3D
 var casings: Casings
 var hud: Hud
 var laser: LaserBeam
+var lasers: Array[LaserBeam] = []  # one beam per mount, lasers[0] == laser
 
 var mouse_delta := Vector2.ZERO
 var state_timer := 0.0
@@ -70,7 +73,7 @@ func _ready() -> void:
 	_enter(State.TITLE)
 	_apply_debug_args()
 
-## Command line (after "--"): --autostart  --fast-forward=SECONDS  --state=levelup|slot|scores|continue|nameentry|destroyed  --autoaim  --touch
+## Command line (after "--"): --autostart  --fast-forward=SECONDS  --state=levelup|slot|scores|continue|nameentry|destroyed  --autoaim  --touch  --mounts=1..3
 func _apply_debug_args() -> void:
 	var args := OS.get_cmdline_user_args()
 	if args.is_empty():
@@ -92,13 +95,17 @@ func _apply_debug_args() -> void:
 			for id in ["radar", "laser", "missiles"]:
 				if Game.item_level(id) == 0:
 					Game.grant(id)
-			turret.refresh_addons()
+			_refresh_mounts()
 			for i in 12:
 				spawn_enemy(Enemy.Type.values()[i % 3], 1 if i == 3 else 0)
 			for e in enemies.get_children():
 				e.global_position *= 0.45
 				e.global_position.y = max(e.global_position.y, 12.0)
 			pending_levelups = 0
+		elif a.begins_with("--mounts="):
+			while Game.mount_count() < clampi(int(a.get_slice("=", 1)), 1, 3):
+				Game.grant("linked")
+			_refresh_mounts()
 		elif a == "--autoaim":
 			debug_autoaim = true
 		elif a == "--touch":
@@ -133,6 +140,14 @@ func _build_scene() -> void:
 	view.add_child(world)
 	turret = Turret.new()
 	view.add_child(turret)
+	# wing mounts stand in a row beside the main gun: first to its right on screen, then left
+	for x in [-WING_SPACING, WING_SPACING]:
+		var w := Turret.new()
+		w.linked = true
+		w.position = Vector3(x, 0, 0)
+		w.visible = false
+		view.add_child(w)
+		wings.append(w)
 	enemies = Node3D.new()
 	view.add_child(enemies)
 	projectiles = Node3D.new()
@@ -143,6 +158,11 @@ func _build_scene() -> void:
 	view.add_child(casings)
 	laser = LaserBeam.new()
 	view.add_child(laser)
+	lasers.append(laser)
+	for i in wings.size():
+		var lb := LaserBeam.new()
+		view.add_child(lb)
+		lasers.append(lb)
 
 	var layer := CanvasLayer.new()
 	# HUD draws in 256x192 logical pixels at 2x (shapes scaled, fonts on their native grids)
@@ -355,7 +375,7 @@ func _enter(s: int) -> void:
 	state = s
 	state_timer = 0.0
 	get_tree().paused = state != State.PLAYING
-	laser.stop()
+	_stop_lasers()
 	Sfx.loop("laser", false)
 	turret.firing = state == State.PLAYING
 	match state:
@@ -382,9 +402,10 @@ func _enter(s: int) -> void:
 			Sfx.play("explode_big")
 			Sfx.play("lost_life")
 			Input.vibrate_handheld(400)
-			Explosion.spawn(fx, turret.gun_pos(), 4.0, [Palette.ORANGE, Palette.YELLOW, Palette.WHITE, Palette.RED], 18)
-			Debris.spawn(fx, turret.gun_pos(), 16, [Palette.SLATE, Palette.LIGHT, Palette.STEEL, Palette.DARK, Palette.RUST], 1.6, 1.4)
-			turret.set_destroyed(true)
+			for m in mounts():
+				Explosion.spawn(fx, m.gun_pos(), 4.0, [Palette.ORANGE, Palette.YELLOW, Palette.WHITE, Palette.RED], 18)
+				Debris.spawn(fx, m.gun_pos(), 16, [Palette.SLATE, Palette.LIGHT, Palette.STEEL, Palette.DARK, Palette.RUST], 1.6, 1.4)
+			_set_destroyed(true)
 			Game.lives -= 1
 			for e in get_tree().get_nodes_in_group("enemies"):
 				if e.global_position.distance_to(Vector3.ZERO) < 170.0 and not e.is_boss:
@@ -408,8 +429,8 @@ func start_run() -> void:
 	for n in fx.get_children(): n.queue_free()
 	turret.yaw = 0.0; turret.target_yaw = 0.0
 	turret.pitch = 10.0; turret.target_pitch = 10.0
-	turret.set_destroyed(false)
-	turret.refresh_addons()
+	_set_destroyed(false)
+	_refresh_mounts()
 	spawn_timer = 1.5
 	next_boss_time = 240.0
 	fire_accum = 0.0
@@ -460,7 +481,7 @@ func _process(delta: float) -> void:
 			if state_timer <= 0.0:
 				if Game.lives > 0:
 					Game.hp = Game.max_hp
-					turret.set_destroyed(false)
+					_set_destroyed(false)
 					invuln = 3.0
 					show_message("BACKUP UNIT ONLINE", 2.0)
 					_enter(State.PLAYING)
@@ -473,7 +494,7 @@ func _process(delta: float) -> void:
 				Sfx.play("countdown", 0.0, 1.0 if continue_timer > 3.0 else 1.4)
 			if btn1():
 				Game.continue_run()
-				turret.set_destroyed(false)
+				_set_destroyed(false)
 				invuln = 3.0
 				Sfx.play("coin")
 				show_message("CONTINUE %d" % Game.continues_used, 2.0)
@@ -512,6 +533,8 @@ func _update_playing(delta: float) -> void:
 		if t != null:
 			turret.track_toward(lead_point(t), Game.auto_track, delta)
 	turret.update(delta)
+	for w in mounts().slice(1):
+		w.follow(turret, delta)
 
 	# the gun never stops
 	fire_accum += delta * Game.vulcan_rof
@@ -523,7 +546,9 @@ func _update_playing(delta: float) -> void:
 	if Game.item_level("laser") > 0:
 		var want := btn1_held() and not laser_locked
 		if want:
-			laser.fire(turret.muzzle_pos(), turret.aim_dir(), delta, Game.laser_dps, Game.laser_wide, Game.evolved.has("laser"))
+			var ms := mounts()
+			for i in ms.size():
+				lasers[i].fire(ms[i].muzzle_pos(), ms[i].aim_dir(), delta, Game.laser_dps, Game.laser_wide, Game.evolved.has("laser"))
 			Sfx.loop("laser", true)
 			if Game.laser_heat_cap > 0.0:
 				laser_heat += 30.0 * delta
@@ -532,7 +557,7 @@ func _update_playing(delta: float) -> void:
 					laser_locked = true
 					Sfx.play("warning")
 		else:
-			laser.stop()
+			_stop_lasers()
 			Sfx.loop("laser", false)
 			laser_heat = max(0.0, laser_heat - Game.laser_cooling * delta)
 			if laser_locked and laser_heat < Game.laser_heat_cap * 0.3:
@@ -559,7 +584,15 @@ func _update_playing(delta: float) -> void:
 		_enter(State.DESTROYED)
 
 func _fire_round() -> void:
-	var base := turret.aim_dir()
+	var right := turret.camera.global_basis.x
+	var back := turret.camera.global_basis.z
+	for m in mounts():
+		_fire_mount(m, right, back)
+	if randi() % 2 == 0:
+		Sfx.play("shot" if randf() < 0.5 else "shot2", -12.0, randf_range(0.9, 1.15))
+
+func _fire_mount(mount: Turret, right: Vector3, back: Vector3) -> void:
+	var base := mount.aim_dir()
 	for i in Game.vulcan_rounds:
 		var spread := deg_to_rad(Game.vulcan_spread)
 		var axis := base.cross(Vector3.UP).normalized()
@@ -570,25 +603,26 @@ func _fire_round() -> void:
 		b.velocity = d * Game.bullet_speed
 		b.damage = Game.vulcan_dmg
 		projectiles.add_child(b)
-		b.global_position = turret.muzzle_pos() + Vector3(randf_range(-0.3, 0.3), randf_range(-0.3, 0.3), 0) + (axis * (i - 0.5) * 1.6 if Game.vulcan_rounds > 1 else Vector3.ZERO)
-		casings.eject(turret.eject_pos(), turret.camera.global_basis.x, turret.camera.global_basis.z)
-	if randi() % 2 == 0:
-		Sfx.play("shot" if randf() < 0.5 else "shot2", -12.0, randf_range(0.9, 1.15))
+		b.global_position = mount.muzzle_pos() + Vector3(randf_range(-0.3, 0.3), randf_range(-0.3, 0.3), 0) + (axis * (i - 0.5) * 1.6 if Game.vulcan_rounds > 1 else Vector3.ZERO)
+		casings.eject(mount.eject_pos(right), right, back)
 
 func _launch_salvo() -> void:
 	var list := get_tree().get_nodes_in_group("enemies").filter(func(e): return not e.dead)
 	list.sort_custom(func(a, b): return a.global_position.length() < b.global_position.length())
 	if list.is_empty():
 		return
-	for i in Game.missile_count:
-		var m := HomingMissile.new()
-		m.target = list[i % list.size()]
-		m.damage = 6.0
-		m.splash = Game.missile_splash
-		projectiles.add_child(m)
-		var side := -1.0 if i % 2 == 0 else 1.0
-		m.global_position = turret.gun_pos() + turret.yaw_node.global_basis.x * side * 3.0 + Vector3(0, 2, 0)
-		m.dir = (Vector3.UP * 1.2 + turret.yaw_node.global_basis.x * side * 0.6 + turret.aim_dir() * 0.4).normalized()
+	var k := 0
+	for mount in mounts():
+		for i in Game.missile_count:
+			var m := HomingMissile.new()
+			m.target = list[k % list.size()]
+			k += 1
+			m.damage = 6.0
+			m.splash = Game.missile_splash
+			projectiles.add_child(m)
+			var side := -1.0 if i % 2 == 0 else 1.0
+			m.global_position = mount.gun_pos() + mount.yaw_node.global_basis.x * side * 3.0 + Vector3(0, 2, 0)
+			m.dir = (Vector3.UP * 1.2 + mount.yaw_node.global_basis.x * side * 0.6 + mount.aim_dir() * 0.4).normalized()
 	Sfx.play("missile", 0.0, randf_range(0.9, 1.1))
 
 func _spawn_director(delta: float) -> void:
@@ -695,6 +729,47 @@ func lead_point(e: Node3D) -> Vector3:
 		t = (p + v * t).distance_to(m) / s
 	return p + v * t
 
+# --- linked mounts ----------------------------------------------------------
+## Every CIWS in the row, main mount first.
+func mounts() -> Array[Turret]:
+	var out: Array[Turret] = [turret]
+	for w in wings:
+		if w.visible:
+			out.append(w)
+	return out
+
+## Show as many wing mounts as LINKED MOUNT allows; every mount shows the addons you own.
+func _refresh_mounts() -> void:
+	turret.refresh_addons()
+	var xs: Array[float] = [0.0]
+	for i in wings.size():
+		var w := wings[i]
+		var on := i < Game.mount_count() - 1
+		if on and not w.visible:
+			w.yaw = turret.yaw
+			w.pitch = turret.pitch
+			w.set_destroyed(turret.hidden_for_death)
+			if state == State.LEVELUP or state == State.SLOT:
+				show_message("LINKED MOUNT ONLINE", 2.0)
+		w.visible = on
+		w.refresh_addons()
+		if on:
+			xs.append(w.position.x)
+	casings.mount_xs = xs
+	var center := 0.0
+	for x in xs:
+		center += x / xs.size()
+	turret.frame_mounts(Game.mount_count(), center)
+
+func _set_destroyed(d: bool) -> void:
+	turret.set_destroyed(d)
+	for w in wings:
+		w.set_destroyed(d)
+
+func _stop_lasers() -> void:
+	for lb in lasers:
+		lb.stop()
+
 # --- callbacks from entities ----------------------------------------------
 func on_enemy_killed(e: Node3D, by_player: bool) -> void:
 	var size := 1.0
@@ -778,7 +853,7 @@ func _update_levelup() -> void:
 	if btn1():
 		var id: String = levelup_choices[levelup_cursor]
 		Game.grant(id)
-		turret.refresh_addons()
+		_refresh_mounts()
 		Sfx.play("confirm")
 		Sfx.play("jackpot", -8.0, 1.6)
 		hud.take_burst(levelup_cursor)
@@ -814,7 +889,7 @@ func _start_slot(kind: String) -> void:
 			var id: String = ups[randi() % ups.size()]
 			Game.grant(id)
 			rewards.append({"id": id, "level": Game.item_level(id)})
-	turret.refresh_addons()
+	_refresh_mounts()
 	var ids := Items.all_ids()
 	var symbols: Array = []
 	var first: String = rewards[0]["id"] if rewards[0]["id"] != "repair" else "armor"

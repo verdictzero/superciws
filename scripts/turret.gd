@@ -2,12 +2,15 @@ class_name Turret
 extends Node3D
 ## The player's stationary CIWS. Built from player_ciws.glb using its node names:
 ##   CIWSunit1 > ciwsLeftRightAxis (yaw) > ciwsUpDownAxis (pitch) > barrel + 3 addon meshes.
+## The main mount carries the camera and takes the player's input. LINKED MOUNT upgrades add
+## wing mounts (`linked = true`) that slave to it, converging their guns on its aim point.
 
 const MODEL := "res://assets/models/player_ciws.glb"
 const PITCH_MIN := -8.0
 const PITCH_MAX := 82.0
 const CAMERA_TILT := 25.0   # degrees the camera looks below the gun line
-const YAW_MARGIN := 25.0   # degrees of traverse allowed beyond the attack cone   # degrees the camera looks below the gun line
+const YAW_MARGIN := 25.0   # degrees of traverse allowed beyond the attack cone
+const CONVERGE := 300.0    # metres down range where linked guns cross the main gun's line
 
 var yaw_node: Node3D
 var pitch_node: Node3D
@@ -24,6 +27,8 @@ var spin := 0.0
 var firing := false
 var fire_accum := 0.0
 var hidden_for_death := false
+var linked := false        # wing mount: no camera, follows the main mount
+var linked_dir := Vector3.FORWARD
 
 func _ready() -> void:
 	var scene: PackedScene = load(MODEL)
@@ -45,13 +50,14 @@ func _ready() -> void:
 	_restyle(model)
 	refresh_addons()
 
-	camera = Camera3D.new()
-	camera.fov = 66.0
-	camera.near = 0.5
-	camera.far = 2500.0
-	camera.position = Vector3(0, 29.0, -34.0)
-	yaw_node.add_child(camera)
-	camera.current = true
+	if not linked:
+		camera = Camera3D.new()
+		camera.fov = 66.0
+		camera.near = 0.5
+		camera.far = 2500.0
+		camera.position = Vector3(0, 29.0, -34.0)
+		yaw_node.add_child(camera)
+		camera.current = true
 
 	muzzle_flash = MeshInstance3D.new()
 	var sm := SphereMesh.new()
@@ -79,6 +85,13 @@ func _restyle(root: Node) -> void:
 			World.toonify(m)
 			m.next_pass = World.outline(1.0)
 			mi.set_surface_override_material(i, m)
+
+## Pull the camera back and up for each linked mount so the whole row stays in view;
+## `center_x` slides it sideways (world x at yaw 0) to the middle of the row.
+func frame_mounts(count: int, center_x: float) -> void:
+	if camera:
+		var n := float(count - 1)
+		camera.position = Vector3(center_x, 29.0 + 4.0 * n, -34.0 - 8.0 * n)
 
 func refresh_addons() -> void:
 	for id in addons.keys():
@@ -126,20 +139,40 @@ func update(delta: float) -> void:
 	barrel.rotation.z = spin
 	muzzle_flash.visible = firing and (Engine.get_frames_drawn() % 2 == 0)
 
+## Wing mount: swing to the point the main gun is aimed at, at the main gun's traverse speed.
+func follow(main_mount: Turret, delta: float) -> void:
+	var goal := main_mount.muzzle_pos() + main_mount.aim_dir() * CONVERGE
+	var p := goal - gun_pos()
+	linked_dir = p.normalized()
+	target_yaw = rad_to_deg(atan2(p.x, p.z))
+	target_pitch = clampf(rad_to_deg(atan2(p.y, Vector2(p.x, p.z).length())), PITCH_MIN, PITCH_MAX)
+	firing = main_mount.firing
+	var rate := Game.traverse_speed * 1.5 * delta
+	yaw += clampf(wrapf(target_yaw - yaw, -180.0, 180.0), -rate, rate)
+	pitch += clampf(target_pitch - pitch, -rate, rate)
+	if firing:
+		spin += delta * 22.0
+	_apply_rotation()
+	barrel.rotation.z = spin
+	muzzle_flash.visible = firing and visible and (Engine.get_frames_drawn() % 2 == 0)
+
 func _apply_rotation() -> void:
 	yaw_node.rotation.y = deg_to_rad(yaw)
 	pitch_node.rotation.x = -deg_to_rad(pitch)
-	camera.rotation = Vector3(deg_to_rad(pitch - CAMERA_TILT), PI, 0)
+	if camera:
+		camera.rotation = Vector3(deg_to_rad(pitch - CAMERA_TILT), PI, 0)
 
 func aim_dir() -> Vector3:
+	if linked:
+		return linked_dir
 	return -camera.global_basis.z
 
 func muzzle_pos() -> Vector3:
 	return barrel.global_transform * Vector3(0, 0, 2.4)
 
 ## Where spent casings leave the gun: the housing's right-hand side as seen from the camera.
-func eject_pos() -> Vector3:
-	return pitch_node.global_position + camera.global_basis.x * 2.6 + Vector3.UP * 0.4
+func eject_pos(right: Vector3) -> Vector3:
+	return pitch_node.global_position + right * 2.6 + Vector3.UP * 0.4
 
 func gun_pos() -> Vector3:
 	return pitch_node.global_position

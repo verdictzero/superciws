@@ -112,6 +112,10 @@ func tick(delta: float) -> void:
 	if regen > 0.0 and hp < max_hp:
 		hp = min(max_hp, hp + regen * delta)
 
+## How many CIWS mounts are in the row (1 to 3).
+func mount_count() -> int:
+	return 1 + mini(item_level("linked"), 2)
+
 func item_level(id: String) -> int:
 	return items.get(id, 0)
 
@@ -119,7 +123,7 @@ func owned_weapons() -> Array:
 	return items.keys().filter(func(k): return Items.WEAPONS.has(k))
 
 func owned_passives() -> Array:
-	return items.keys().filter(func(k): return Items.PASSIVES.has(k))
+	return items.keys().filter(func(k): return Items.PASSIVES.has(k) and Items.PASSIVES[k]["kind"] == "passive")
 
 func can_offer(id: String) -> bool:
 	var d := Items.get_def(id)

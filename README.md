@@ -30,6 +30,9 @@ the directed energy beam once you own it. Missiles auto-launch when ready.
 - Weapons (map to addon meshes in `player_ciws.glb`): Vulcan, AESA Radar, Quad Missiles, DEW Laser.
   The DEW Laser mounts on top of the missile pod, so it is only offered once you own Quad Missiles.
 - Passives: Armor, Nanites, Hydraulics, Coolant, Optics, Scavenger, Lucky Charm, Tracers.
+- Linked Mount (2 levels, takes no weapon or passive slot): adds a 2nd, then 3rd CIWS in a row.
+  Wing mounts slave to your aim, converge on the crosshair, fire every weapon you own and
+  show the same addons. The camera pulls back to keep the row in frame.
 - Max-level weapon + the right passive = evolution, granted by the next loot crate.
 - Gold / purple advanced units and UFO bosses drop a parachuted crate that spins a 3-reel slot
   machine: 1 reward, triple (3) or jackpot (5).
@@ -71,7 +74,7 @@ godot --headless --path . --export-release "Web"     build/web/index.html
 godot --headless --path . --export-release "Android" build/android/superciws.apk
 ```
 
-Debug launch flags (after `--`): `--autostart`, `--fast-forward=120`, `--autoaim`, `--touch`,
+Debug launch flags (after `--`): `--autostart`, `--fast-forward=120`, `--autoaim`, `--touch`, `--mounts=1..3`,
 `--state=levelup|slot|scores|continue|nameentry|destroyed`.
 
 ## Credits

@@ -72,6 +72,10 @@ const PASSIVES := {
 		"desc": ["MORE ADVANCED UNITS, BETTER CRATES"]},
 	"tracers": {"name": "TRACER ROUNDS", "kind": "passive", "max": 4, "icon": "T", "color": Palette.ORANGE,
 		"desc": ["ROUNDS FLY 20% FASTER: EASIER TO HIT"]},
+	# not a passive slot: adds whole CIWS mounts that copy every weapon and addon you own
+	"linked": {"name": "LINKED MOUNT", "kind": "mount", "max": 2, "icon": "#", "color": Palette.GOLD,
+		"desc": ["2ND CIWS. AIMS AND FIRES WITH YOU, SHARES ALL UPGRADES",
+			"3RD CIWS. A FULL ROW OF LINKED GUNS"]},
 }
 
 ## weapon at max level + passive owned -> evolved form (granted by the next loot crate)

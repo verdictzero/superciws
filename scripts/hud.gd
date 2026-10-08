@@ -413,6 +413,7 @@ func _draw_levelup() -> void:
 		var lvl := Game.item_level(id)
 		var frame := Palette.SLATE
 		if d["kind"] == "weapon": frame = Palette.RUST
+		if d["kind"] == "mount": frame = Palette.GOLD
 		if sel:
 			frame = Palette.YELLOW if blink(0.25) else Palette.WHITE
 		panel(Rect2(x, y, 76, 112), frame, Palette.NIGHT if not sel else Palette.DARK)
@@ -441,6 +442,8 @@ func _draw_levelup() -> void:
 			PixelFont.draw_centered(self, x + 38, y + 62 + li * 7, lines[li], c(Palette.LIGHT_SAND), 1, true)
 		if d["kind"] == "weapon":
 			PixelFont.draw_centered(self, x + 38, y + 100, "WEAPON", c(Palette.ORANGE), 1, false)
+		elif d["kind"] == "mount":
+			PixelFont.draw_centered(self, x + 38, y + 100, "MOUNT", c(Palette.GOLD), 1, false)
 		else:
 			PixelFont.draw_centered(self, x + 38, y + 100, "PASSIVE", c(Palette.PALE_BLUE), 1, false)
 		if lvl + 1 >= int(d["max"]):
