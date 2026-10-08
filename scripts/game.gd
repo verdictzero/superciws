@@ -5,6 +5,7 @@ signal stats_changed
 signal score_changed
 
 const MAX_WEAPONS := 4
+const AIM_ASSIST := 0.25   # default aim assist strength (0 turns it off)
 const MAX_PASSIVES := 6
 const START_LIVES := 3
 const SAVE_PATH := "user://highscores.json"
@@ -43,7 +44,7 @@ var missile_count: int = 0
 var missile_cooldown: float = 0.0
 var missile_splash: bool = false
 var radar_level: int = 0
-var auto_track: float = 0.0
+var auto_track: float = 0.0   # aim assist strength: how hard the gun drifts onto the nearest target
 var slow_field: float = 0.0
 
 var high_scores: Array = []   # [{name, score, level, time}]
@@ -273,9 +274,10 @@ func recalc() -> void:
 		missile_cooldown *= 0.6
 
 	radar_level = l.call("radar")
-	auto_track = 0.0
-	if radar_level >= 4: auto_track = 0.3
-	if radar_level >= 5: auto_track = 0.6
+	# aim assist is always on; radar levels 4 and 5 make it pull harder
+	auto_track = AIM_ASSIST
+	if radar_level >= 4: auto_track = 0.45
+	if radar_level >= 5: auto_track = 0.7
 	slow_field = 0.25 if evolved.has("radar") else 0.0
 
 	if hp > max_hp:

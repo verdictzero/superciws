@@ -10,6 +10,7 @@ const PITCH_MIN := -8.0
 const PITCH_MAX := 82.0
 const CAMERA_TILT := 25.0   # degrees the camera looks below the gun line
 const YAW_MARGIN := 25.0   # degrees of traverse allowed beyond the attack cone
+const ASSIST_WINDOW := 20.0   # degrees from the crosshair inside which aim assist pulls
 const CONVERGE := 300.0    # metres down range where linked guns cross the main gun's line
 
 var yaw_node: Node3D
@@ -114,7 +115,7 @@ func track_toward(world_point: Vector3, strength: float, delta: float) -> void:
 	var want_pitch := rad_to_deg(atan2(p.y, Vector2(p.x, p.z).length()))
 	var dy := wrapf(want_yaw - target_yaw, -180.0, 180.0)
 	var dp := want_pitch - target_pitch
-	if strength >= 1.0 or (abs(dy) < 14.0 and abs(dp) < 14.0):
+	if strength >= 1.0 or (abs(dy) < ASSIST_WINDOW and abs(dp) < ASSIST_WINDOW):
 		target_yaw += dy * strength * delta * 5.0
 		target_pitch += dp * strength * delta * 5.0
 

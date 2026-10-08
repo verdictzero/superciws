@@ -711,7 +711,7 @@ func best_target() -> Node3D:
 			continue
 		var rel: Vector3 = e.global_position - origin
 		var ang := dir.angle_to(rel)
-		if ang > deg_to_rad(20.0):
+		if ang > deg_to_rad(Turret.ASSIST_WINDOW):
 			continue
 		var s := ang * (0.5 if e.type == e.Type.MISSILE else 1.0) * (0.7 if e.is_boss else 1.0)
 		if s < bs:

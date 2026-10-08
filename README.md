@@ -29,6 +29,8 @@ the directed energy beam once you own it. Missiles auto-launch when ready.
 - Enemies attack from a cone in front of the battery: 30 degrees at level 1, 5 degrees
   wider per level, up to the full circle. Traverse is limited to that cone plus a margin.
 - Kills drop XP chips that fly to the battery. Level up = pick 1 of 3 cards.
+- Aim assist is on from the start: when an enemy is near the crosshair the gun drifts onto
+  its lead point (strength `Game.AIM_ASSIST`; AESA Radar levels 4 and 5 make it stronger).
 - Weapons (map to addon meshes in `player_ciws.glb`): Vulcan, AESA Radar, Quad Missiles, DEW Laser.
   The DEW Laser mounts on top of the missile pod, so it is only offered once you own Quad Missiles.
 - Passives: Armor, Nanites, Hydraulics, Coolant, Optics, Scavenger, Lucky Charm, Tracers.
