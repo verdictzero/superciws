@@ -1,26 +1,20 @@
 class_name PixelFont
-## Text for the HUD and overlays using two real pixel fonts (both SIL OFL, see assets/fonts):
-##   Press Start 2P  - headings, prompts, icons (8px grid, scale 2+)
-##   VT323           - body text and readouts (16px grid, scale 1)
+## Text for the HUD and overlays in Press Start 2P (SIL OFL, see assets/fonts), drawn at
+## whole multiples of its native 8px grid: scale 1 = 8px, scale 2 = 16px, ...
 ## Positions are "logical" pixels; `unit` says how many canvas pixels one logical pixel is
 ## (the HUD draws at 2x so glyphs land on their native grids, overlays draw at 1x).
 
-const BODY_PATH := "res://assets/fonts/VT323-Regular.ttf"
-const HEAD_PATH := "res://assets/fonts/PressStart2P-Regular.ttf"
-const BODY_PX := 16
-const HEAD_PX := 8
-const H := 6      # approximate logical cap height of body text (layout helper)
-const ADV := 4    # approximate logical advance of body text (layout helper)
+const FONT_PATH := "res://assets/fonts/PressStart2P-Regular.ttf"
+const PX := 8
+const H := 4      # approximate logical cap height of scale 1 text (layout helper)
+const ADV := 4    # logical advance of scale 1 text (layout helper)
 
 static var unit := 2.0
-static var _body: FontFile
-static var _head: FontFile
+static var _font_file: FontFile
 
 static func _ensure() -> void:
-	if _body != null:
-		return
-	_body = _prep(load(BODY_PATH))
-	_head = _prep(load(HEAD_PATH))
+	if _font_file == null:
+		_font_file = _prep(load(FONT_PATH))
 
 static func _prep(f: FontFile) -> FontFile:
 	f.antialiasing = TextServer.FONT_ANTIALIASING_NONE
@@ -29,11 +23,11 @@ static func _prep(f: FontFile) -> FontFile:
 	f.generate_mipmaps = false
 	return f
 
-static func _font(scale: int) -> FontFile:
-	return _body if scale <= 1 else _head
+static func _font(_scale: int) -> FontFile:
+	return _font_file
 
 static func _px(scale: int) -> int:
-	return BODY_PX if scale <= 1 else HEAD_PX * scale
+	return PX * maxi(scale, 1)
 
 static func width(text: String, scale: int = 1) -> int:
 	_ensure()
@@ -41,9 +35,7 @@ static func width(text: String, scale: int = 1) -> int:
 
 ## Baseline offset (canvas px) so the cap height sits just below `pos.y`.
 static func _baseline(scale: int) -> float:
-	if scale <= 1:
-		return 12.0           # VT323 @16: caps are ~10px tall
-	return float(HEAD_PX * scale) - float(scale) * 0.5   # Press Start 2P fills the em
+	return floorf(float(_px(scale)) * 15.0 / 16.0)   # Press Start 2P fills the em
 
 static func draw(ci: CanvasItem, pos: Vector2, text: String, color: Color, scale: int = 1, shadow: bool = false) -> void:
 	_ensure()

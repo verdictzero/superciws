@@ -77,5 +77,4 @@ Debug launch flags (after `--`): `--autostart`, `--fast-forward=120`, `--autoaim
 ## Credits
 
 Explosion sprites from `verdictzero/galvarius`. Models and branding by verdictzero.
-Fonts: Press Start 2P (CodeMan38) and VT323 (Peter Hull), both under the SIL Open Font
-License, see `assets/fonts/`.
+Font: Press Start 2P (CodeMan38), under the SIL Open Font License, see `assets/fonts/`.

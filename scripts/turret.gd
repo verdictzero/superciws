@@ -6,7 +6,7 @@ extends Node3D
 const MODEL := "res://assets/models/player_ciws.glb"
 const PITCH_MIN := -8.0
 const PITCH_MAX := 82.0
-const CAMERA_TILT := 17.0   # degrees the camera looks below the gun line
+const CAMERA_TILT := 25.0   # degrees the camera looks below the gun line
 const YAW_MARGIN := 25.0   # degrees of traverse allowed beyond the attack cone   # degrees the camera looks below the gun line
 
 var yaw_node: Node3D
@@ -46,10 +46,10 @@ func _ready() -> void:
 	refresh_addons()
 
 	camera = Camera3D.new()
-	camera.fov = 64.0
+	camera.fov = 66.0
 	camera.near = 0.5
 	camera.far = 2500.0
-	camera.position = Vector3(0, 20.0, -25.0)
+	camera.position = Vector3(0, 29.0, -34.0)
 	yaw_node.add_child(camera)
 	camera.current = true
 
