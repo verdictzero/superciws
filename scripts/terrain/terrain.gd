@@ -40,13 +40,15 @@ static func _load_heights() -> void:
 	if f == null:
 		push_error("Terrain: missing height.bin")
 		return
-	if f.get_buffer(4).get_string_from_ascii() != "HGT1":
-		push_error("Terrain: bad height.bin")
+	if f.get_buffer(4).get_string_from_ascii() != "HGT2":
+		push_error("Terrain: bad height.bin, rebake with tools/bake_terrain.gd")
 		return
-	_size = f.get_32()
+	var size := f.get_32()
 	_step = f.get_float()
 	_origin = f.get_float()
-	_grid = f.get_buffer(_size * _size * 4).to_float32_array()
+	var packed := f.get_buffer(f.get_32())
+	_grid = packed.decompress(size * size * 4, FileAccess.COMPRESSION_GZIP).to_float32_array()
+	_size = size
 
 ## Ground height at a world XZ, bilinear on the baked grid. Off the map: the flat base.
 static func height_at(x: float, z: float) -> float:

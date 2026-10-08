@@ -86,14 +86,21 @@ def pad_sdf(x, z):
     return outside + np.minimum(np.maximum(qx, qz), 0) - c
 
 
-def load_heights():
-    raw = HEIGHTS.read_bytes()
-    if raw[:4] != b"HGT1":
-        sys.exit("run tools/bake_terrain.gd first (build/terrain/height_bake.bin missing)")
+def read_heights(path):
+    """Height grid written by tools/bake_terrain.gd: "HGT2" header + gzip float32 rows."""
+    import gzip
+    raw = path.read_bytes()
+    if raw[:4] != b"HGT2":
+        sys.exit(f"{path} missing or stale: run tools/bake_terrain.gd")
     size = int(np.frombuffer(raw[4:8], np.uint32)[0])
     step, origin = np.frombuffer(raw[8:16], np.float32)
-    h = np.frombuffer(raw[16:], np.float32).reshape(size, size)
+    n = int(np.frombuffer(raw[16:20], np.uint32)[0])
+    h = np.frombuffer(gzip.decompress(raw[20:20 + n]), np.float32).reshape(size, size)
     return h, float(step), float(origin)
+
+
+def load_heights():
+    return read_heights(HEIGHTS)
 
 
 def load_tiles():

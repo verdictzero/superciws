@@ -122,7 +122,8 @@ func _merge(parts: Array, origin: Vector3) -> ArrayMesh:
 	return mesh
 
 ## Square grid of heights over [-R, R]^2, row-major (z rows, x columns), float32 LE,
-## preceded by a 16-byte header: "HGT1", size (u32), step (f32), origin (f32).
+## gzip-compressed, after a 20-byte header: "HGT2", size (u32), step (f32), origin (f32),
+## compressed length (u32).
 func _write_grid(field: DesertField, R: float, step: float, path: String) -> void:
 	var size := int(round(2.0 * R / step)) + 1
 	var data := PackedFloat32Array()
@@ -131,12 +132,14 @@ func _write_grid(field: DesertField, R: float, step: float, path: String) -> voi
 		var z := -R + float(j) * step
 		for i in size:
 			data[j * size + i] = field.height(-R + float(i) * step, z)
+	var packed := data.to_byte_array().compress(FileAccess.COMPRESSION_GZIP)
 	var f := FileAccess.open(path, FileAccess.WRITE)
-	f.store_buffer("HGT1".to_ascii_buffer())
+	f.store_buffer("HGT2".to_ascii_buffer())
 	f.store_32(size)
 	f.store_float(step)
 	f.store_float(-R)
-	f.store_buffer(data.to_byte_array())
+	f.store_32(packed.size())
+	f.store_buffer(packed)
 	f.close()
 
 func _signature() -> String:

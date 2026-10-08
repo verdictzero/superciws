@@ -8,12 +8,13 @@ const ATLAS := "res://assets/terrain/scatter_atlas.png"
 
 func _ready() -> void:
 	var f := FileAccess.open(BAKE, FileAccess.READ)
-	if f == null or f.get_buffer(4).get_string_from_ascii() != "SCT1":
-		push_error("Scatter: missing bake, run tools/bake_vegetation.py")
+	if f == null or f.get_buffer(4).get_string_from_ascii() != "SCT2":
+		push_error("Scatter: missing or stale bake, run tools/bake_vegetation.py")
 		return
 	var count := f.get_32()
 	var stride := f.get_32()
-	var data := f.get_buffer(count * stride * 4).to_float32_array()
+	var packed := f.get_buffer(f.get_32())
+	var data := packed.decompress(count * stride * 4, FileAccess.COMPRESSION_GZIP).to_float32_array()
 	var quad := QuadMesh.new()
 	quad.size = Vector2.ONE
 	quad.center_offset = Vector3(0, 0.5, 0)   # pivot at the foot

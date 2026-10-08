@@ -6,7 +6,8 @@
 Reads the in-game sprites in assets/vegetation/*/ and assets/rocks/*/, the height grid
 (build/terrain/height_bake.bin) and assets/terrain/desert.json. Writes
   assets/terrain/scatter_atlas.png    every sprite, padded, one texture
-  assets/terrain/bake/scatter.bin     instances: x, y, z, width, height, u0, v0, u1, v1
+  assets/terrain/bake/scatter.bin     "SCT2", count, stride, gzip length, then gzip'd float32
+                                      rows: x, y, z, width, height, u0, v0, u1, v1
   assets/terrain/bake/scatter.json    counts and stats
 The game draws all of it as ONE MultiMesh of camera-facing quads.
 
@@ -30,6 +31,9 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 from scipy import ndimage
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from bake_ground import read_heights  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 CFG = json.loads((ROOT / "assets/terrain/desert.json").read_text())
@@ -66,10 +70,7 @@ CLEAR = float(PAD["sandy"]) * 0.75   # nothing grows closer than this to the asp
 
 # ------------------------------------------------------------------ helpers
 def load_heights():
-    raw = (ROOT / "build/terrain/height_bake.bin").read_bytes()
-    size = int(np.frombuffer(raw[4:8], np.uint32)[0])
-    step, origin = np.frombuffer(raw[8:16], np.float32)
-    return np.frombuffer(raw[16:], np.float32).reshape(size, size), float(step), float(origin)
+    return read_heights(ROOT / "build/terrain/height_bake.bin")
 
 
 def pad_sdf(x, z):
@@ -282,10 +283,12 @@ def main():
     arr = np.array(inst, np.float32)
     # nearest first: front-to-back draw order helps the GPU reject hidden fragments
     arr = arr[np.argsort(np.hypot(arr[:, 0], arr[:, 2]))]
+    import gzip
+    packed = gzip.compress(arr.tobytes(), 9)
     with open(OUT_BAKE / "scatter.bin", "wb") as fh:
-        fh.write(b"SCT1")
-        fh.write(np.array([len(arr), 9], np.uint32).tobytes())
-        fh.write(arr.tobytes())
+        fh.write(b"SCT2")
+        fh.write(np.array([len(arr), 9, len(packed)], np.uint32).tobytes())
+        fh.write(packed)
     stats = {"instances": len(arr), "patches": int(len(centres)), "species": counts,
              "atlas": "scatter_atlas.png", "sprites": [str(f.relative_to(ROOT / "assets")) for f in files]}
     (OUT_BAKE / "scatter.json").write_text(json.dumps(stats, indent=2))
