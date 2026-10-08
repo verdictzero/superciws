@@ -24,7 +24,7 @@ window/size/viewport_height=768
 window/size/resizable=true
 window/stretch/mode="disabled"
 window/stretch/aspect="keep"
-window/handheld/orientation=6
+window/handheld/orientation=4
 window/vsync/vsync_mode=1
 
 [input_devices]

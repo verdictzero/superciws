@@ -52,12 +52,14 @@ Touch controls appear automatically on a touchscreen (or with `--touch`):
 - Right half: FIRE / BEAM button (tap, or hold for the laser). In menus it is OK.
 - MSL button: fires a missile salvo early once the pod is owned.
 - Menus: tap a card to select it, tap again to take it; swipe to move; tap to confirm.
-- The game stays 4:3. Landscape phones get the controls in the side bars (or over the
-  edges when the bars are thin); portrait and folded devices put the game at the top with
-  the controls underneath. The layout re-flows live when a foldable opens or closes.
+- The game stays 4:3. Landscape screens get the controls in the side bars (or over the
+  edges when the bars are thin). The Android build is locked to landscape (either way up,
+  honouring the rotation lock); a portrait browser window on the Web build puts the game
+  at the top with the controls underneath. The layout re-flows live when a foldable opens
+  or closes.
 - Taking damage vibrates the device.
 
-Android (APK, arm64 + armv7, any orientation, immersive) and Web (no-threads build, works on
+Android (APK, arm64 + armv7, landscape locked, immersive) and Web (no-threads build, works on
 plain static hosts and installs as a PWA) presets are included and built by CI.
 
 ## Building
