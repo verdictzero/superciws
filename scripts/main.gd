@@ -701,7 +701,7 @@ func on_enemy_killed(e: Node3D, by_player: bool) -> void:
 	if e.advanced > 0: size = 1.8
 	if e.is_boss: size = 3.2
 	Explosion.spawn(fx, e.global_position, size, [Palette.ORANGE, Palette.YELLOW, Palette.WHITE, Palette.RED], 8 + int(size * 4))
-	var wreck_cols := [Palette.SLATE, Palette.DARK, Palette.STEEL, Palette.RUST]
+	var wreck_cols := [Palette.RED, Palette.DARK, Palette.STEEL, Palette.RUST]
 	if e.advanced == 1: wreck_cols.append(Palette.GOLD)
 	if e.advanced == 2: wreck_cols.append(Palette.PURPLE)
 	Debris.spawn(fx, e.global_position, 4 + int(size * 3), wreck_cols, 0.7 + size * 0.4)

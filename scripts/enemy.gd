@@ -8,7 +8,7 @@ const TARGET := Vector3(0, 14, 0)
 static var _scenes: Dictionary = {}   # model name -> PackedScene
 static var flash_mat: StandardMaterial3D
 static var pulse_mat: StandardMaterial3D
-static var outline_mats: Array = []   # per advanced level: ink outline shells
+static var outline_mat: ShaderMaterial   # ink outline shell
 
 var type: int = Type.QUAD
 var advanced := 0          # 0 normal, 1 gold, 2 purple
@@ -30,6 +30,8 @@ var spawn_timer := 4.0
 var orbit_angle := 0.0
 var is_boss := false
 var velocity := Vector3.ZERO
+var body_mats: Array = []   # [material, red albedo] pairs, swapped to the tier colour while flashing
+var flash_on := false
 # fixed-wing flight state
 var diving := false
 var bank := 0.0
@@ -44,13 +46,12 @@ static func _ensure_templates() -> void:
 		_scenes[n] = en
 	_scenes["ufo"] = uf
 	flash_mat = World.flat_material(Palette.c(Palette.WHITE), true)
-	pulse_mat = World.flat_material(Palette.c(Palette.RED))
+	pulse_mat = World.flat_material(Palette.c(Palette.YELLOW))   # beacon lights pop against red hulls
 	pulse_mat.emission_enabled = true
 	pulse_mat.emission = Palette.c(Palette.ORANGE)
 	pulse_mat.emission_energy_multiplier = 1.0
 	pulse_mat.disable_fog = true
-	for col in [Palette.BLACK, Palette.RED, Palette.WHITE]:
-		outline_mats.append(World.outline(1.5, Palette.c(col), false))
+	outline_mat = World.outline(1.5, Color.BLACK, false)
 
 func setup(t: int, advanced_level: int, difficulty: float) -> void:
 	_ensure_templates()
@@ -94,7 +95,6 @@ func setup(t: int, advanced_level: int, difficulty: float) -> void:
 	add_to_group("enemies")
 
 func _restyle(root: Node) -> void:
-	var tint := Palette.c(Palette.YELLOW) if advanced == 1 else (Palette.c(Palette.PURPLE) if advanced == 2 else Color.WHITE)
 	var all: Array = [root] if root is MeshInstance3D else []
 	all.append_array(root.find_children("*", "MeshInstance3D", true, false))
 	for mi in all:
@@ -109,22 +109,24 @@ func _restyle(root: Node) -> void:
 				mi.set_surface_override_material(i, pulse_mat)
 				continue
 			var m := StandardMaterial3D.new()
-			var base := Color(0.8, 0.8, 0.8)
-			var glow := Color.BLACK
+			# every hostile is red; the model's own light/dark parts pick one of three reds
+			var luma := 0.6
 			if src is BaseMaterial3D:
-				base = src.albedo_color
-				if src.emission_enabled:
-					glow = src.emission * 1.5
-			if advanced > 0:
-				base = base.lerp(tint, 0.75)
+				luma = src.albedo_color.get_luminance()
+			var base := Palette.c(Palette.RED)
+			if luma < 0.3:
+				base = Palette.c(Palette.RED).darkened(0.45)
+			elif luma > 0.75:
+				base = Palette.c(Palette.SALMON)
 			# a small self-lit floor keeps the shadow side from melting into the sand
 			m.albedo_color = base
 			m.emission_enabled = true
-			m.emission = glow + base * 0.12
+			m.emission = base * 0.12
 			World.toonify(m)
 			m.disable_fog = true   # enemies stay crisp at any range
 			if type != Type.UFO:
-				m.next_pass = outline_mats[advanced]
+				m.next_pass = outline_mat
+			body_mats.append([m, base])
 			mi.set_surface_override_material(i, m)
 
 func hit(dmg: float, _at: Vector3) -> void:
@@ -156,6 +158,8 @@ func _physics_process(delta: float) -> void:
 		if flash_t <= 0.0:
 			for mi in mesh_instances:
 				mi.material_override = null
+	if advanced > 0:
+		_update_flashing()
 	var main := get_tree().current_scene
 	var to_t := TARGET - global_position
 	var dist := to_t.length()
@@ -197,6 +201,18 @@ func _physics_process(delta: float) -> void:
 	if type != Type.UFO and dist < radius + 7.0:
 		main.player_hit(damage, global_position)
 		die(false)
+
+## ADVANCED units strobe between red and their tier colour (gold or purple).
+func _update_flashing() -> void:
+	var on := fmod(age * 5.0, 1.0) < 0.5
+	if on == flash_on:
+		return
+	flash_on = on
+	var tier := Palette.c(Palette.YELLOW) if advanced == 1 else Palette.c(Palette.PURPLE)
+	for pair in body_mats:
+		var m: StandardMaterial3D = pair[0]
+		m.albedo_color = tier if on else pair[1]
+		m.emission = tier * 0.6 if on else pair[1] * 0.12
 
 ## Loitering-munition style attack: cruise in at altitude weaving gently, then roll into a
 ## steep terminal dive. Heading changes are limited by a turn rate so the drone flies arcs,
