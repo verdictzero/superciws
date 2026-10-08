@@ -1,0 +1,31 @@
+{
+  "levels": [
+    {
+      "name": "near",
+      "centre": [
+        0.0,
+        0.0
+      ],
+      "size": 512.0,
+      "texels": 2048
+    },
+    {
+      "name": "mid",
+      "centre": [
+        0.0,
+        0.0
+      ],
+      "size": 1152.0,
+      "texels": 1024
+    },
+    {
+      "name": "far",
+      "centre": [
+        0.0,
+        0.0
+      ],
+      "size": 2304.0,
+      "texels": 1024
+    }
+  ]
+}

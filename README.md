@@ -64,6 +64,48 @@ Touch controls appear automatically on a touchscreen (or with `--touch`):
 Android (APK, arm64 + armv7, landscape locked, immersive) and Web (no-threads build, works on
 plain static hosts and installs as a PWA) presets are included and built by CI.
 
+## The desert (terrain, plants, horizon)
+
+The world is baked offline and committed, so no device ever generates terrain:
+
+- **Terrain**: a 1152 m radius disc of 128 m chunks on mewd-engine's height function
+  (sparse hills, ridged crests, micro relief; island coast, cliffs and cloud sea dropped),
+  flat around the battery and rolling toward the rim. Each chunk is meshed once at a fixed
+  resolution by distance (4 m near the guns down to 32 m at the rim) with skirts, merged
+  into 36 meshes (~65k triangles). Tunables: `assets/terrain/desert.json`.
+- **Ground**: three nested top-down textures (0.25 / 1.1 / 2.25 m per texel) painted from
+  the sand, dirt, asphalt and sandy-asphalt tiles: power-law sand and dirt splats with
+  noisy edges, dirt in hollows and on steep faces, the asphalt pad with a sandy-asphalt
+  ring and drifted edges, all Bayer-dithered to the palette. The terrain shader dithers
+  between the levels on screen.
+- **Plants and rocks**: ~62k camera-facing sprites in one MultiMesh (one draw call, one
+  atlas), placed as Poisson-spread patches (scrub, saguaro stands, rock outcrops, grass
+  swales) whose members fall off from the centre with the biggest in the middle, plus
+  singles in between; small things only as far out as they can be seen.
+- **Horizon**: mewd-engine's horizon band shader (view-direction sampled, follows the
+  camera): two drifting cloud layers and two mountain rings composed from the mountain
+  cutouts. The mountain rings are opaque below the horizon, which hides the terrain rim.
+- **Ground height**: `Terrain.height_at(x, z)` (baked 4 m grid) is what debris, casings,
+  crates, rounds and missiles land on.
+
+### Art pipeline
+
+Originals live untouched in `assets_src/<category>/<set>/originals/` (ignored by Godot,
+never shipped). Then:
+
+```
+python3 tools/cutout_assets.py     # magenta key -> full-res cutouts/ (lossless WebP masters)
+python3 tools/build_assets.py      # cutouts -> assets/<category>/<set>/*.png, in-game size,
+                                   # 1-bit alpha, 8x8 Bayer dithered to the 128-colour palette
+python3 tools/bake_sky.py          # mountain cutouts -> assets/sky/mountains_{near,far}.png
+godot --headless --path . --script res://tools/bake_terrain.gd   # meshes + height grids
+python3 tools/bake_ground.py       # ground textures (reads the fine height grid)
+python3 tools/bake_vegetation.py   # scatter + atlas
+```
+
+Python needs `numpy`, `scipy` and `Pillow`. Colours are matched to the palette in Oklab,
+the same as the post shader's lookup table, so hues stay true.
+
 ## Building
 
 Exports for Linux and Windows are produced by `.github/workflows/build.yml` on every push

@@ -6,7 +6,7 @@ extends MultiMeshInstance3D
 
 const POOL := 240
 const GRAVITY := 32.0
-const GROUND_Y := -0.6
+const GROUND_Y := -0.6       # the pad's level (the mounts stand on it)
 const RADIUS := 0.24
 const LIFE := 5.0
 # the CIWS mount: a tapered block centred on the origin
@@ -92,8 +92,8 @@ func _physics_process(delta: float) -> void:
 						p.z = signf(p.z) * half
 						v.z = absf(v.z) * signf(p.z) * 0.5
 					spin[i] *= 0.7
-			elif p.y < GROUND_Y + RADIUS:
-				p.y = GROUND_Y + RADIUS
+			elif p.y < Terrain.height_at(p.x + mx, p.z) + RADIUS:
+				p.y = Terrain.height_at(p.x + mx, p.z) + RADIUS
 				v = _bounce(v, i)
 			p.x += mx
 			pos[i] = p

@@ -41,7 +41,7 @@ func _process(delta: float) -> void:
 	global_position.y -= 11.0 * delta
 	global_position.x += sin(_sway) * 3.0 * delta
 	rotation.z = sin(_sway) * 0.15
-	if global_position.y <= 2.0:
+	if global_position.y <= Terrain.height_at(global_position.x, global_position.z) + 2.6:
 		_landed = true
 		Sfx.play("crate")
 		get_tree().current_scene.open_crate(kind)

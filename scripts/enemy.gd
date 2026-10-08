@@ -83,6 +83,7 @@ func setup(t: int, advanced_level: int, difficulty: float) -> void:
 	var inst: Node = _scenes[model_name].instantiate()
 	model = inst.get_node(model_name)
 	inst.remove_child(model)
+	model.owner = null
 	inst.queue_free()
 	model.position = Vector3.ZERO
 	model.rotation = Vector3(0, PI, 0)   # glTF +Z forward -> Godot -Z forward
@@ -238,7 +239,7 @@ func _fly_fixed_wing(delta: float, to_t: Vector3) -> Vector3:
 		# overshot the battery: pull up and come around
 		if velocity.normalized().dot(want) < -0.2 and hdist > 30.0:
 			diving = false
-		if global_position.y < 6.0:
+		if global_position.y < Terrain.height_at(global_position.x, global_position.z) + 6.0:
 			want.y = maxf(want.y, 0.3)
 	fw_speed = move_toward(fw_speed, target_speed, speed * 0.8 * delta)
 	var cur := velocity.normalized()

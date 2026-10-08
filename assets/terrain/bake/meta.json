@@ -1,0 +1,21 @@
+{
+  "signature": "75b40962a78f179b",
+  "radius": 1152.0,
+  "chunk_size": 128.0,
+  "chunks": 284,
+  "meshes": 36,
+  "triangles": 64768,
+  "chunks_per_resolution": {
+    "4": 104,
+    "8": 128,
+    "16": 40,
+    "32": 12
+  },
+  "height_grid": {
+    "file": "height.bin",
+    "step": 4.0,
+    "origin": -1152.0,
+    "size": 577
+  },
+  "bake_ms": 3524
+}

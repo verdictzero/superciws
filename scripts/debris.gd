@@ -53,7 +53,7 @@ func _process(delta: float) -> void:
 		var v: Vector3 = c[1]
 		v.y -= 42.0 * delta
 		var p := mi.global_position + v * delta
-		var floor_y := mi.scale.y * 0.5 - 0.4
+		var floor_y := Terrain.height_at(p.x, p.z) + mi.scale.y * 0.5 + 0.2
 		if p.y <= floor_y:
 			p.y = floor_y
 			if absf(v.y) > 6.0:

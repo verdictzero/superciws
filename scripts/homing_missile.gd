@@ -41,7 +41,7 @@ func _physics_process(delta: float) -> void:
 	if is_instance_valid(target) and global_position.distance_to(target.global_position) < target.radius + 2.5:
 		_detonate(main)
 		return
-	if life <= 0.0 or global_position.y < -2.0:
+	if life <= 0.0 or global_position.y < Terrain.height_at(global_position.x, global_position.z):
 		_detonate(main)
 
 func _detonate(main: Node) -> void:

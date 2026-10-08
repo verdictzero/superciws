@@ -1,0 +1,58 @@
+{
+  "seed": 1337,
+  "radius": 1152.0,
+  "chunk_size": 128.0,
+  "lod": [
+    [
+      160.0,
+      32
+    ],
+    [
+      460.0,
+      16
+    ],
+    [
+      900.0,
+      8
+    ],
+    [
+      100000.0,
+      4
+    ]
+  ],
+  "skirt_depth": 3.0,
+  "curvature_radius": 4.0,
+  "base_y": -0.6,
+  "hill": {
+    "scale": 560.0,
+    "octaves": 2,
+    "height": 11.0,
+    "sparsity": 0.3,
+    "ramp": 0.62
+  },
+  "ridge": {
+    "scale": 240.0,
+    "octaves": 2,
+    "height": 3.5,
+    "on_hills": 0.85
+  },
+  "micro": {
+    "scale": 34.0,
+    "height": 0.45
+  },
+  "relief": {
+    "near": 0.12,
+    "start": 90.0,
+    "full": 520.0
+  },
+  "pad": {
+    "half_x": 33.0,
+    "half_z": 19.0,
+    "corner": 7.0,
+    "sandy": 16.0,
+    "flatten": 70.0
+  },
+  "height_grid_step": 2.0,
+  "runtime_grid_step": 4.0,
+  "merge_chunks": 3
+}

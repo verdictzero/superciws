@@ -45,5 +45,5 @@ func _physics_process(delta: float) -> void:
 			return
 	global_position = end
 	life -= delta
-	if life <= 0.0 or global_position.y < -2.0:
+	if life <= 0.0 or global_position.y < Terrain.height_at(global_position.x, global_position.z) - 0.5:
 		queue_free()
