@@ -8,7 +8,7 @@ const TARGET := Vector3(0, 14, 0)
 static var _scenes: Dictionary = {}   # model name -> PackedScene
 static var flash_mat: StandardMaterial3D
 static var pulse_mat: StandardMaterial3D
-static var outline_mats: Array = []   # per advanced level: inverted-hull silhouette shells
+static var outline_mats: Array = []   # per advanced level: ink outline shells
 
 var type: int = Type.QUAD
 var advanced := 0          # 0 normal, 1 gold, 2 purple
@@ -50,12 +50,7 @@ static func _ensure_templates() -> void:
 	pulse_mat.emission_energy_multiplier = 1.0
 	pulse_mat.disable_fog = true
 	for col in [Palette.BLACK, Palette.RED, Palette.WHITE]:
-		var o := World.flat_material(Palette.c(col), true)
-		o.cull_mode = BaseMaterial3D.CULL_FRONT
-		o.grow = true
-		o.grow_amount = 0.12
-		o.disable_fog = true
-		outline_mats.append(o)
+		outline_mats.append(World.outline(1.5, Palette.c(col), false))
 
 func setup(t: int, advanced_level: int, difficulty: float) -> void:
 	_ensure_templates()
@@ -122,14 +117,11 @@ func _restyle(root: Node) -> void:
 					glow = src.emission * 1.5
 			if advanced > 0:
 				base = base.lerp(tint, 0.75)
-			# lift the hull so it reads against sand and sky: brighter albedo plus a self-lit floor
-			base = base.lightened(0.2)
+			# a small self-lit floor keeps the shadow side from melting into the sand
 			m.albedo_color = base
 			m.emission_enabled = true
-			m.emission = glow + base * 0.35
-			m.roughness = 1.0
-			m.specular_mode = BaseMaterial3D.SPECULAR_DISABLED
-			m.shading_mode = BaseMaterial3D.SHADING_MODE_PER_VERTEX
+			m.emission = glow + base * 0.12
+			World.toonify(m)
 			m.disable_fog = true   # enemies stay crisp at any range
 			if type != Type.UFO:
 				m.next_pass = outline_mats[advanced]

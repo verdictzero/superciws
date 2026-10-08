@@ -1,20 +1,46 @@
 class_name World
 extends Node3D
 ## Procedural desert: flat sand, two rings of low-poly mountains, rocks, a sun.
-## Everything is flat-coloured and vertex lit so the palette filter bands it.
+## Everything is flat-coloured and toon lit (hard lit/shadow split) with ink outlines.
 
 var sun_dir := Vector3(-0.45, -0.55, 0.7).normalized()
+var _cactus_mats: Array = []
 
-static func flat_material(color: Color, unshaded: bool = false) -> StandardMaterial3D:
+static var _outlines: Dictionary = {}
+
+static func flat_material(color: Color, unshaded: bool = false, outline_px: float = 0.0) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
 	m.albedo_color = color
-	m.roughness = 1.0
 	m.metallic = 0.0
 	m.specular_mode = BaseMaterial3D.SPECULAR_DISABLED
-	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED if unshaded else BaseMaterial3D.SHADING_MODE_PER_VERTEX
 	m.cull_mode = BaseMaterial3D.CULL_DISABLED
 	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+	if unshaded:
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m.roughness = 1.0
+	else:
+		toonify(m)
+	if outline_px > 0.0:
+		m.next_pass = outline(outline_px)
 	return m
+
+## Cel shading: per-pixel toon diffuse, low roughness gives a hard terminator.
+static func toonify(m: StandardMaterial3D) -> void:
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
+	m.diffuse_mode = BaseMaterial3D.DIFFUSE_TOON
+	m.specular_mode = BaseMaterial3D.SPECULAR_DISABLED
+	m.roughness = 0.12
+
+## Shared ink-line shell material (constant on-screen width), cached per style.
+static func outline(width_px: float = 1.0, ink: Color = Color.BLACK, fog: bool = true) -> ShaderMaterial:
+	var key := "%s|%s|%s" % [width_px, ink.to_html(), fog]
+	if not _outlines.has(key):
+		var sm := ShaderMaterial.new()
+		sm.shader = load("res://shaders/outline.gdshader" if fog else "res://shaders/outline_nofog.gdshader")
+		sm.set_shader_parameter("ink", ink)
+		sm.set_shader_parameter("width_px", width_px)
+		_outlines[key] = sm
+	return _outlines[key]
 
 func _ready() -> void:
 	seed(7)
@@ -123,7 +149,7 @@ func _build_mountains(radius: float, hmin: float, hmax: float, segments: int, li
 	add_child(mi)
 
 func _build_rocks() -> void:
-	var rock_mats := [flat_material(Palette.c(Palette.BROWN)), flat_material(Palette.c(Palette.DARK_BROWN)), flat_material(Palette.c(Palette.UMBER))]
+	var rock_mats := [flat_material(Palette.c(Palette.BROWN), false, 1.0), flat_material(Palette.c(Palette.DARK_BROWN), false, 1.0), flat_material(Palette.c(Palette.UMBER), false, 1.0)]
 	for i in 40:
 		var mi := MeshInstance3D.new()
 		var bm := BoxMesh.new()
@@ -146,9 +172,11 @@ func _build_cactus(pos: Vector3, s: float) -> void:
 	root.position = pos
 	root.rotation.y = randf() * TAU
 	add_child(root)
-	var dark := flat_material(Palette.c(Palette.DARK_GREEN))
-	var mid := flat_material(Palette.c(Palette.FOREST))
-	var light := flat_material(Palette.c(Palette.MID_GREEN))
+	if _cactus_mats.is_empty():
+		_cactus_mats = [flat_material(Palette.c(Palette.DARK_GREEN)), flat_material(Palette.c(Palette.FOREST), false, 1.0), flat_material(Palette.c(Palette.MID_GREEN), false, 1.0)]
+	var dark: Material = _cactus_mats[0]
+	var mid: Material = _cactus_mats[1]
+	var light: Material = _cactus_mats[2]
 	var trunk_h := randf_range(9, 18) * s
 	var trunk_w := randf_range(1.6, 2.4) * s
 	_cactus_segment(root, Vector3(0, trunk_h * 0.5, 0), Vector3(trunk_w, trunk_h, trunk_w), mid)

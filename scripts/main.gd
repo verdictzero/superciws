@@ -18,6 +18,7 @@ var turret: Turret
 var enemies: Node3D
 var projectiles: Node3D
 var fx: Node3D
+var casings: Casings
 var hud: Hud
 var laser: LaserBeam
 
@@ -138,6 +139,8 @@ func _build_scene() -> void:
 	view.add_child(projectiles)
 	fx = Node3D.new()
 	view.add_child(fx)
+	casings = Casings.new()
+	view.add_child(casings)
 	laser = LaserBeam.new()
 	view.add_child(laser)
 
@@ -568,6 +571,7 @@ func _fire_round() -> void:
 		b.damage = Game.vulcan_dmg
 		projectiles.add_child(b)
 		b.global_position = turret.muzzle_pos() + Vector3(randf_range(-0.3, 0.3), randf_range(-0.3, 0.3), 0) + (axis * (i - 0.5) * 1.6 if Game.vulcan_rounds > 1 else Vector3.ZERO)
+		casings.eject(turret.eject_pos(), turret.camera.global_basis.x, turret.camera.global_basis.z)
 	if randi() % 2 == 0:
 		Sfx.play("shot" if randf() < 0.5 else "shot2", -12.0, randf_range(0.9, 1.15))
 

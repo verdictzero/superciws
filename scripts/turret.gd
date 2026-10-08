@@ -76,9 +76,8 @@ func _restyle(root: Node) -> void:
 			var m := StandardMaterial3D.new()
 			if src is BaseMaterial3D:
 				m.albedo_color = src.albedo_color * Color(0.55, 0.55, 0.6)   # darker gunmetal
-			m.roughness = 1.0
-			m.specular_mode = BaseMaterial3D.SPECULAR_DISABLED
-			m.shading_mode = BaseMaterial3D.SHADING_MODE_PER_VERTEX
+			World.toonify(m)
+			m.next_pass = World.outline(1.0)
 			mi.set_surface_override_material(i, m)
 
 func refresh_addons() -> void:
@@ -137,6 +136,10 @@ func aim_dir() -> Vector3:
 
 func muzzle_pos() -> Vector3:
 	return barrel.global_transform * Vector3(0, 0, 2.4)
+
+## Where spent casings leave the gun: the housing's right-hand side as seen from the camera.
+func eject_pos() -> Vector3:
+	return pitch_node.global_position + camera.global_basis.x * 2.6 + Vector3.UP * 0.4
 
 func gun_pos() -> Vector3:
 	return pitch_node.global_position
