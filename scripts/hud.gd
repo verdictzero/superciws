@@ -361,13 +361,14 @@ func _scope(enemies: Array) -> void:
 	if half < PI:
 		for sgn in [-1.0, 1.0]:
 			var b: float = sgn * half - yaw
-			draw_line(center, center + Vector2(sin(b), -cos(b)) * r, c(Palette.YELLOW), 1.0)
+			# world +X is screen left from behind the gun, so the scope mirrors x
+			draw_line(center, center + Vector2(-sin(b), -cos(b)) * r, c(Palette.YELLOW), 1.0)
 	var rng := 400.0 if Game.radar_level >= 3 else 300.0
 	for e in enemies:
 		if e.dead:
 			continue
 		var rel: Vector3 = e.global_position.rotated(Vector3.UP, -yaw)
-		var v := Vector2(rel.x, -rel.z) / rng * r
+		var v := Vector2(-rel.x, -rel.z) / rng * r
 		if v.length() > r:
 			continue
 		var col := Palette.GREEN

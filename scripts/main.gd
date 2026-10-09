@@ -520,18 +520,22 @@ func _process(delta: float) -> void:
 func _update_playing(delta: float) -> void:
 	Game.tick(delta)
 	invuln = max(0.0, invuln - delta)
-	var stick := Input.get_vector("aim_left", "aim_right", "aim_down", "aim_up")
-	stick = (stick + Vector2(touch_stick.x, -touch_stick.y)).limit_length(1.0)
-	turret.aim(stick, mouse_delta, delta)
+	# the player steers left/right only; elevation tracks the target ahead by itself
+	var steer := clampf(Input.get_axis("aim_left", "aim_right") + touch_stick.x, -1.0, 1.0)
+	turret.aim(steer, mouse_delta.x, delta)
 	if debug_autoaim:
 		var ne := nearest_enemy(turret.gun_pos())
 		if ne != null:
-			turret.track_toward(lead_point(ne), 1.0, delta)
+			turret.assist_yaw(lead_point(ne), 1.0, delta)
 			turret.target_yaw = wrapf(turret.target_yaw, -180.0, 180.0)
-	if Game.auto_track > 0.0:
-		var t := best_target()
-		if t != null:
-			turret.track_toward(lead_point(t), Game.auto_track, delta)
+	var t := best_target()
+	if t != null:
+		var lp := lead_point(t)
+		turret.track_pitch(lp)
+		if Game.auto_track > 0.0:
+			turret.assist_yaw(lp, Game.auto_track, delta)
+	else:
+		turret.idle_pitch()
 	turret.update(delta)
 	for w in mounts().slice(1):
 		w.follow(turret, delta)
@@ -701,19 +705,19 @@ func nearest_enemy(from: Vector3) -> Node3D:
 	return best
 
 func best_target() -> Node3D:
-	## The enemy closest to the reticle, favouring missiles.
+	## The enemy the gun is pointed toward: smallest heading error (elevation is ignored,
+	## the barrel finds that itself), favouring missiles, the boss and anything close.
 	var best: Node3D = null
 	var bs := INF
-	var dir := turret.aim_dir()
-	var origin := turret.camera.global_position
 	for e in get_tree().get_nodes_in_group("enemies"):
 		if e.dead:
 			continue
-		var rel: Vector3 = e.global_position - origin
-		var ang := dir.angle_to(rel)
-		if ang > deg_to_rad(Turret.ASSIST_WINDOW):
+		var ang := absf(turret.yaw_error(e.global_position))
+		if ang > Turret.TRACK_WINDOW:
 			continue
-		var s := ang * (0.5 if e.type == e.Type.MISSILE else 1.0) * (0.7 if e.is_boss else 1.0)
+		var dist: float = e.global_position.distance_to(turret.gun_pos())
+		var s := (ang + 2.0) * (0.5 if e.type == e.Type.MISSILE else 1.0) * (0.7 if e.is_boss else 1.0) \
+				* lerpf(0.6, 1.2, clampf(dist / 400.0, 0.0, 1.0))
 		if s < bs:
 			bs = s
 			best = e

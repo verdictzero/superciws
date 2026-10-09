@@ -1,7 +1,9 @@
 class_name Palette
 ## The whole game is quantised to this list by the post shader.
 ## 128 colours, SNES / SuperFX flavoured. The first 64 are hand picked; the
-## rest are hue/shade ramps, greys and earth tones for smoother gradients. Swap entries here to restyle the game.
+## rest are hue/shade ramps, greys and earth tones for smoother gradients, plus eight
+## desert greens (sampled from the cactus, brush and grass art) in place of the least used
+## saturated magenta/violet ramp entries. Swap entries here to restyle the game.
 
 const COLORS: PackedColorArray = [
 	Color("#000000"), # 0 black
@@ -95,7 +97,7 @@ const COLORS: PackedColorArray = [
 	Color("#117272"), # 88 dark mint
 	Color("#2db7b7"), # 89 mid mint
 	Color("#69eaea"), # 90 light mint
-	Color("#bfffff"), # 91 pastel mint
+	Color("#a5b297"), # 91 desert pale sage
 	Color("#114172"), # 92 dark cyan
 	Color("#2d72b7"), # 93 mid cyan
 	Color("#69aaea"), # 94 light cyan
@@ -109,13 +111,13 @@ const COLORS: PackedColorArray = [
 	Color("#aa69ea"), # 102 light blue
 	Color("#dfbfff"), # 103 pastel blue
 	Color("#721172"), # 104 dark violet
-	Color("#b72db7"), # 105 mid violet
-	Color("#ea69ea"), # 106 light violet
+	Color("#3f4523"), # 105 desert dark olive
+	Color("#565e3b"), # 106 desert olive
 	Color("#ffbfff"), # 107 pastel violet
-	Color("#721141"), # 108 dark magenta
-	Color("#b72d72"), # 109 mid magenta
-	Color("#ea69aa"), # 110 light magenta
-	Color("#ffbfdf"), # 111 pastel magenta
+	Color("#68714a"), # 108 desert sage shade
+	Color("#879c4e"), # 109 desert cactus green
+	Color("#899172"), # 110 desert sage
+	Color("#94a388"), # 111 desert blue sage
 	Color("#101010"), # 112 grey 10
 	Color("#242424"), # 113 grey 24
 	Color("#383838"), # 114 grey 38
@@ -127,7 +129,7 @@ const COLORS: PackedColorArray = [
 	Color("#c8c8c8"), # 120 grey c8
 	Color("#dcdcdc"), # 121 grey dc
 	Color("#f0f0f0"), # 122 grey f0
-	Color("#f8f8f8"), # 123 grey f8
+	Color("#a2ad6e"), # 123 desert dry grass
 	Color("#6a4a30"), # 124 umber
 	Color("#8c6a48"), # 125 khaki
 	Color("#b89470"), # 126 camel

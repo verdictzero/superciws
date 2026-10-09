@@ -8,9 +8,16 @@ extends Node3D
 const MODEL := "res://assets/models/player_ciws.glb"
 const PITCH_MIN := -8.0
 const PITCH_MAX := 82.0
-const CAMERA_TILT := 25.0   # degrees the camera looks below the gun line
+# The camera does not ride the gun's elevation: it holds a framing angle that shows the
+# mount and the horizon, and only follows the barrel part of the way up so high targets
+# stay on screen. The crosshair is drawn where the barrel really points.
+const CAM_PITCH_BASE := -25.0     # camera pitch with the barrel level
+const CAM_PITCH_FOLLOW := 0.65    # how much of the barrel's elevation the camera takes
+const CAM_PITCH_MAX := 22.0
+const IDLE_PITCH := 6.0           # where the barrel rests with nothing to track
 const YAW_MARGIN := 25.0   # degrees of traverse allowed beyond the attack cone
-const ASSIST_WINDOW := 20.0   # degrees from the crosshair inside which aim assist pulls
+const ASSIST_WINDOW := 20.0   # degrees of heading error inside which aim assist pulls
+const TRACK_WINDOW := 30.0    # degrees of heading error inside which elevation locks on
 const CONVERGE := 300.0    # metres down range where linked guns cross the main gun's line
 
 var yaw_node: Node3D
@@ -25,6 +32,7 @@ var pitch := 10.0
 var target_yaw := 0.0
 var target_pitch := 10.0
 var spin := 0.0
+var cam_pitch := CAM_PITCH_BASE
 var firing := false
 var fire_accum := 0.0
 var hidden_for_death := false
@@ -98,26 +106,34 @@ func refresh_addons() -> void:
 	for id in addons.keys():
 		addons[id].visible = Game.item_level(id) > 0
 
-## Called by main with the joystick/mouse aim input for this frame.
-## stick: -1..1 per axis (x = right, y = up), mouse: pixel delta.
-func aim(stick: Vector2, mouse: Vector2, delta: float) -> void:
-	var rate := Game.traverse_speed
-	target_yaw += stick.x * rate * delta
-	target_pitch += stick.y * rate * delta
-	target_yaw += mouse.x * 0.14
-	target_pitch -= mouse.y * 0.14
-	target_pitch = clampf(target_pitch, PITCH_MIN, PITCH_MAX)
+## The player only traverses: steer is -1..1 (right = +1), mouse is a pixel delta.
+## Yaw grows toward world +X, which is screen LEFT from behind the gun, hence the minus.
+func aim(steer: float, mouse_x: float, delta: float) -> void:
+	target_yaw -= steer * Game.traverse_speed * delta
+	target_yaw -= mouse_x * 0.14
 
-func track_toward(world_point: Vector3, strength: float, delta: float) -> void:
-	## Radar auto-track nudges the aim toward a lead point if it is close to the reticle.
-	var p := world_point - camera.global_position
-	var want_yaw := rad_to_deg(atan2(p.x, p.z))
-	var want_pitch := rad_to_deg(atan2(p.y, Vector2(p.x, p.z).length()))
-	var dy := wrapf(want_yaw - target_yaw, -180.0, 180.0)
-	var dp := want_pitch - target_pitch
-	if strength >= 1.0 or (abs(dy) < ASSIST_WINDOW and abs(dp) < ASSIST_WINDOW):
-		target_yaw += dy * strength * delta * 5.0
-		target_pitch += dp * strength * delta * 5.0
+## Yaw and pitch (degrees) the barrel needs to point at a world point.
+func angles_to(world_point: Vector3) -> Vector2:
+	var p := world_point - gun_pos()
+	return Vector2(rad_to_deg(atan2(p.x, p.z)), rad_to_deg(atan2(p.y, Vector2(p.x, p.z).length())))
+
+## Degrees between the gun's current heading and a world point, signed like yaw.
+func yaw_error(world_point: Vector3) -> float:
+	return wrapf(angles_to(world_point).x - yaw, -180.0, 180.0)
+
+## Elevation is automatic: the barrel lays itself onto the tracked point.
+func track_pitch(world_point: Vector3) -> void:
+	target_pitch = clampf(angles_to(world_point).y, PITCH_MIN, PITCH_MAX)
+
+func idle_pitch() -> void:
+	target_pitch = IDLE_PITCH
+
+## Aim assist on traverse: drift the heading onto a point near the crosshair.
+## strength 1 = full lock (debug autoaim).
+func assist_yaw(world_point: Vector3, strength: float, delta: float) -> void:
+	var dy := wrapf(angles_to(world_point).x - target_yaw, -180.0, 180.0)
+	if strength >= 1.0 or absf(dy) < ASSIST_WINDOW:
+		target_yaw += dy * minf(strength * delta * 5.0, 1.0)
 
 func update(delta: float) -> void:
 	var rate := Game.traverse_speed * delta
@@ -134,6 +150,8 @@ func update(delta: float) -> void:
 	var dp := target_pitch - pitch
 	pitch += clampf(dp, -rate, rate)
 	pitch = clampf(pitch, PITCH_MIN, PITCH_MAX)
+	var want_cam := clampf(CAM_PITCH_BASE + pitch * CAM_PITCH_FOLLOW, CAM_PITCH_BASE, CAM_PITCH_MAX)
+	cam_pitch = lerpf(cam_pitch, want_cam, minf(delta * 3.0, 1.0))
 	if firing:
 		spin += delta * 22.0
 	_apply_rotation()
@@ -161,12 +179,13 @@ func _apply_rotation() -> void:
 	yaw_node.rotation.y = deg_to_rad(yaw)
 	pitch_node.rotation.x = -deg_to_rad(pitch)
 	if camera:
-		camera.rotation = Vector3(deg_to_rad(pitch - CAMERA_TILT), PI, 0)
+		camera.rotation = Vector3(deg_to_rad(cam_pitch), PI, 0)
 
+## Where the rounds go: straight down the barrel.
 func aim_dir() -> Vector3:
 	if linked:
 		return linked_dir
-	return -camera.global_basis.z
+	return barrel.global_basis.z.normalized()
 
 func muzzle_pos() -> Vector3:
 	return barrel.global_transform * Vector3(0, 0, 2.4)

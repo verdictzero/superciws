@@ -14,11 +14,15 @@ gradients, fog and the sunset sky all break into ordered-dither patterns.
 
 | Input                        | Keyboard / mouse                  | Gamepad            |
 |------------------------------|-----------------------------------|--------------------|
-| Aim                          | Arrows / WASD / mouse             | Left stick / D-pad |
+| Traverse (left / right)      | Left/Right, A/D / mouse X         | Left stick / D-pad |
 | Button 1: confirm, hold=beam | Space / Enter / Z / Ctrl / LMB    | A / Start          |
 | Button 2: missile salvo      | X / Shift / Alt / RMB             | B / X              |
 | Fullscreen                   | F11                               |                    |
 | Quit (exported build)        | Esc                               |                    |
+
+You only steer the turret left and right. Elevation is automatic: the barrel lays itself
+onto the target nearest your heading (missiles and the boss first) and the crosshair shows
+exactly where the rounds go; aim assist also drifts your heading onto that target.
 
 The main gun fires automatically and endlessly. Button 1 is context-sensitive: it
 confirms in menus, picks level-up cards, continues, enters initials, and in play it holds
@@ -50,7 +54,7 @@ the directed energy beam once you own it. Missiles auto-launch when ready.
 
 Touch controls appear automatically on a touchscreen (or with `--touch`):
 
-- Left half of the screen: floating virtual stick, aims the turret.
+- Left half of the screen: floating virtual stick, traverses the turret left/right.
 - Right half: FIRE / BEAM button (tap, or hold for the laser). In menus it is OK.
 - MSL button: fires a missile salvo early once the pod is owned.
 - Menus: tap a card to select it, tap again to take it; swipe to move; tap to confirm.
