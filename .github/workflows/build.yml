@@ -13,6 +13,8 @@ env:
 jobs:
   export:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write   # the release step publishes to GitHub Releases on v* tags
     steps:
       - uses: actions/checkout@v4
 
@@ -53,7 +55,14 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Android SDK build-tools + debug keystore + editor settings
+      - name: Android SDK build-tools + keystores + editor settings
+        env:
+          # Optional repository secrets for a stable signing key, so every release APK
+          # installs over the previous one: ANDROID_KEYSTORE_BASE64 (base64 of the .jks),
+          # ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD. Without them a throwaway key is made.
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KS_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KS_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           set -e
           SDK="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
@@ -61,6 +70,18 @@ jobs:
           "$SDK/cmdline-tools/latest/bin/sdkmanager" "build-tools;35.0.0" "platform-tools" "platforms;android-35" > /dev/null
           keytool -keyalg RSA -genkeypair -alias androiddebugkey -keypass android -keystore "$HOME/debug.keystore" \
             -storepass android -dname "CN=Android Debug,O=Android,C=US" -validity 9999
+          if [ -n "$KS_B64" ]; then
+            echo "$KS_B64" | base64 -d > "$HOME/release.keystore"
+            echo "GODOT_ANDROID_KEYSTORE_RELEASE_USER=$KS_ALIAS" >> "$GITHUB_ENV"
+            echo "GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD=$KS_PASS" >> "$GITHUB_ENV"
+            echo "Signing with the repository's release key"
+          else
+            cp "$HOME/debug.keystore" "$HOME/release.keystore"
+            echo "GODOT_ANDROID_KEYSTORE_RELEASE_USER=androiddebugkey" >> "$GITHUB_ENV"
+            echo "GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD=android" >> "$GITHUB_ENV"
+            echo "::warning::No ANDROID_KEYSTORE_BASE64 secret: APK signed with a throwaway key"
+          fi
+          echo "GODOT_ANDROID_KEYSTORE_RELEASE_PATH=$HOME/release.keystore" >> "$GITHUB_ENV"
           mkdir -p ~/.config/godot
           for f in editor_settings-4.5.tres editor_settings-4.tres; do
             cat > ~/.config/godot/$f <<EOS
@@ -75,10 +96,10 @@ jobs:
           EOS
           done
 
-      - name: Export Android (debug-signed APK)
+      - name: Export Android (release APK, arm64 + armv7, landscape)
         run: |
           mkdir -p build/android
-          ./godot --headless --path . --export-debug "Android" build/android/superciws.apk
+          ./godot --headless --path . --export-release "Android" build/android/superciws.apk
           ls -la build/android
 
       - name: Package
